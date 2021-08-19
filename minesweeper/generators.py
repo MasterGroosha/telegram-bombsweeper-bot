@@ -17,7 +17,7 @@ def generate_square_field(k: int) -> List[List]:
     return result
 
 
-def generate_valid_coordinates(x: int, y: int, size: int) -> List[Tuple]:
+def _generate_valid_coordinates(x: int, y: int, size: int) -> List[Tuple]:
     curr_x = x
     curr_y = y
     result = []
@@ -64,7 +64,7 @@ def generate_valid_coordinates(x: int, y: int, size: int) -> List[Tuple]:
     return result
 
 
-def generate_custom(size: int, maxbombs: int):
+def generate_custom(size: int, maxbombs: int) -> List[List]:
     field = generate_square_field(size)
     current_count = 0
 
@@ -76,7 +76,7 @@ def generate_custom(size: int, maxbombs: int):
             print("hit!")
             continue
         field[x][y] = "*"
-        neigbours = generate_valid_coordinates(x, y, 5)
+        neigbours = _generate_valid_coordinates(x, y, 5)
         for nx, ny in neigbours:
             if field[nx][ny] != "*":
                 field[nx][ny] += 1
@@ -84,6 +84,7 @@ def generate_custom(size: int, maxbombs: int):
         current_count += 1
 
     print_field(field)
+    return field
 
 
 if __name__ == '__main__':
