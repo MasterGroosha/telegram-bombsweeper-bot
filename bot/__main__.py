@@ -4,29 +4,31 @@ from os.path import join
 
 from aiogram import Bot, Dispatcher
 from aiogram.types import BotCommand, BotCommandScopeChat, BotCommandScopeDefault
+from aiogram.contrib.fsm_storage.memory import MemoryStorage
 
 from bot.config_reader import load_config
-from bot.middlewares.config import ConfigMiddleware
+# from bot.middlewares.config import ConfigMiddleware
 from bot.handlers.default_commands import register_default_handlers
+from bot.handlers.callbacks import register_callbacks
 
 logger = logging.getLogger(__name__)
 
 
-async def set_bot_commands(bot: Bot):
-    data = [
-        (
-            [BotCommand(command="help", description="help только для @Groosha")],
-            BotCommandScopeChat(chat_id=1795872),
-            None
-        ),
-        (
-            [BotCommand(command="help", description="help для всех")],
-            BotCommandScopeDefault(),
-            None
-        ),
-    ]
-    for commands_list, commands_scope, language in data:
-        await bot.set_my_commands(commands=commands_list, scope=commands_scope, language_code=language)
+# async def set_bot_commands(bot: Bot):
+#     data = [
+#         (
+#             [BotCommand(command="help", description="help только для @Groosha")],
+#             BotCommandScopeChat(chat_id=1795872),
+#             None
+#         ),
+#         (
+#             [BotCommand(command="help", description="help для всех")],
+#             BotCommandScopeDefault(),
+#             None
+#         ),
+#     ]
+#     for commands_list, commands_scope, language in data:
+#         await bot.set_my_commands(commands=commands_list, scope=commands_scope, language_code=language)
 
 
 async def main():
@@ -37,20 +39,21 @@ async def main():
     )
 
     # Чтение файла конфигурации
-    config = load_config(join("config", "bot.ini"))
+    config = load_config(join("bot", "config", "bot.ini"))
 
     # Объявление и инициализация объектов бота и диспетчера
     bot = Bot(token=config.tg_bot.token)
-    dp = Dispatcher(bot)
+    dp = Dispatcher(bot, storage=MemoryStorage())
 
     # Регистрация хэндлеров
     register_default_handlers(dp)
+    register_callbacks(dp)
 
     # Регистрация мидлвари
-    dp.middleware.setup(ConfigMiddleware(config))
+    # dp.middleware.setup(ConfigMiddleware(config))
 
     # Регистрация /-команд в интерфейсе
-    await set_bot_commands(bot)
+    # await set_bot_commands(bot)
 
     logger.info("Starting bot")
 
