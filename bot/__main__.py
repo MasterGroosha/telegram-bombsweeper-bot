@@ -42,7 +42,7 @@ async def main():
     config = load_config(join("bot", "config", "bot.ini"))
 
     # Объявление и инициализация объектов бота и диспетчера
-    bot = Bot(token=config.tg_bot.token)
+    bot = Bot(token=config.tg_bot.token, parse_mode="HTML")
     dp = Dispatcher(bot, storage=MemoryStorage())
 
     # Регистрация хэндлеров
