@@ -1,5 +1,5 @@
 from uuid import uuid4
-from typing import Dict, List, Union
+from typing import Dict
 
 from aiogram import types, Dispatcher
 from aiogram.dispatcher import FSMContext
@@ -25,6 +25,7 @@ async def callback_newgame(call: types.CallbackQuery, state: FSMContext):
 
 
 async def callback_open_square(call: types.CallbackQuery, state: FSMContext, callback_data: Dict):
+    # todo: get rid of code duplication
     fsm_data = await state.get_data()
     game_data = fsm_data.get("game_data", {})
     cells = game_data.get("cells")
@@ -98,43 +99,57 @@ async def switch_click_mode(call: types.CallbackQuery, state: FSMContext, callba
     await call.answer()
 
 
-async def callback_switch_flag_state(call: types.CallbackQuery, state: FSMContext, callback_data: Dict):
-    async with state.proxy() as data:
-        game_id = data["game_id"]
-        # if fsm_data.get("game_id") != callback_data.get("game_id"):
-        #     await call.answer(show_alert=True, text="This game is inaccessible, because there is more recent one!")
-        #     # todo: replace keyboard with text (or with not working keyboard)
-        #     return
-        game_data = data["game_data"]
-        minefield = game_data["minefield"]
-        maskfield = game_data["maskfield"]
-        action = callback_data["action"]
-        x = int(callback_data["x"])
-        y = int(callback_data["y"])
-        if action == "add":
-            game_data["maskfield"][x][y] = MaskFieldSquareStatus.FLAG
-            print(f"{untouched_cells_count(maskfield)=}")
-            print(f"{maskfield=}")
-            # todo: duplicate code
-            if untouched_cells_count(maskfield) == 0:
-                if all_flags_match(minefield, maskfield):  # user won
-                    # todo: show field
-                    await call.message.edit_text(call.message.html_text + "\n\nYou won!", reply_markup=None)
-                    await call.answer(show_alert=True, text="Congratulations! You won!")
-                    return
-                else:  # some flag is improperly placed, keep trying
-                    await call.answer(
-                        show_alert=True,
-                        text="Looks like you've placed more flags than there are bombs on field. Please check them again."
-                    )
+async def add_or_remove_flag(call: types.CallbackQuery, state: FSMContext, callback_data: Dict):
+    # todo: get rid of code duplication
+    fsm_data = await state.get_data()
+    game_data = fsm_data.get("game_data", {})
+    cells = game_data.get("cells")
+    game_id = fsm_data.get("game_id")
 
-        else:
-            maskfield[x][y] = MaskFieldSquareStatus.HIDDEN
+    # if not game_id:
+    #     # todo:
+
+    if fsm_data.get("game_id") != callback_data.get("game_id"):
+        if cells is not None:
+            await call.message.edit_text(call.message.html_text + f"\n\n{make_text_table(cells)}")
+        await call.answer(show_alert=True, text="This game is inaccessible, because there is more recent one!")
+        return
+
+    action = callback_data["action"]
+    flag_x = int(callback_data["x"])
+    flag_y = int(callback_data["y"])
+
+    if action == "remove":
+        cells[flag_x][flag_y].update(mask=MaskFieldSquareStatus.HIDDEN)
+        await state.update_data(game_data=game_data)
         await call.message.edit_reply_markup(
-            make_keyboard_from_minefield(
-                game_data["minefield"], game_data["maskfield"], game_id, game_data["current_mode"]
-            )
+            make_keyboard_from_minefield(cells, game_id, game_data["current_mode"])
         )
+    elif action == "add":
+        cells[flag_x][flag_y].update(mask=MaskFieldSquareStatus.FLAG)
+        if untouched_cells_count(cells) == 0:
+            if all_flags_match_bombs(cells):
+                await call.message.edit_text(
+                    call.message.html_text + f"\n\n{make_text_table(cells)}\n\nYou won! 🎉",
+                    reply_markup=None
+                )
+            else:
+                await state.update_data(game_data=game_data)
+                await call.message.edit_reply_markup(
+                    make_keyboard_from_minefield(cells, game_id, game_data["current_mode"])
+                )
+                await call.answer(
+                    show_alert=True,
+                    text="Looks like you've placed more flags than there are bombs on field. "
+                         "Please check them again."
+                )
+                return
+        else:
+            await state.update_data(game_data=game_data)
+            await call.message.edit_reply_markup(
+                make_keyboard_from_minefield(cells, game_id, game_data["current_mode"])
+            )
+    await call.answer()
 
 
 async def callback_ignore(call: types.CallbackQuery):
@@ -145,5 +160,5 @@ def register_callbacks(dp: Dispatcher):
     dp.register_callback_query_handler(callback_newgame, text="newgame")
     dp.register_callback_query_handler(callback_ignore, text="ignore")
     dp.register_callback_query_handler(callback_open_square, cb_click.filter())
-    dp.register_callback_query_handler(callback_switch_flag_state, cb_switch_flag.filter())
+    dp.register_callback_query_handler(add_or_remove_flag, cb_switch_flag.filter())
     dp.register_callback_query_handler(switch_click_mode, cb_switch_mode.filter())
