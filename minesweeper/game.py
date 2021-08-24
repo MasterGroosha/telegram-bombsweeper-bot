@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List
 
 from texttable import Texttable
 
@@ -8,6 +8,13 @@ from minesweeper.states import ClickMode
 
 
 def get_newgame_data(size: int, bombs: int) -> Dict:
+    """
+    Prepares a new game dictionary
+
+    :param size: field size (a field is a size x size square)
+    :param bombs: number of bombs to place
+    :return: a dictionary with field data for a new game
+    """
     result = {"current_mode": ClickMode.CLICK, "size": size, "bombs": bombs}
     field = generate_custom(size, bombs)
     for x in range(size):
@@ -18,6 +25,12 @@ def get_newgame_data(size: int, bombs: int) -> Dict:
 
 
 def untouched_cells_count(cells: List[List[Dict]]) -> int:
+    """
+    Counts the number of "untouched" cells: those which status is HIDDEN
+
+    :param cells: array of array of cells dicts
+    :return: number of cells with HIDDEN status
+    """
     counter = 0
     for row in cells:
         for cell in row:
@@ -27,6 +40,13 @@ def untouched_cells_count(cells: List[List[Dict]]) -> int:
 
 
 def all_flags_match_bombs(cells: List[List[Dict]]) -> bool:
+    """
+    Checks whether all flags are placed correctly
+    and there are no flags over regular cells (not bombs)
+
+    :param cells: array of array of cells dicts
+    :return: True if all flags are placed correctly
+    """
     for row in cells:
         for cell in row:
             if cell["mask"] == MaskFieldSquareStatus.FLAG and cell["value"] != "*":
@@ -34,7 +54,13 @@ def all_flags_match_bombs(cells: List[List[Dict]]) -> bool:
     return True
 
 
-def make_text_table(cells: List[List[Dict]], explosion: Optional[Tuple[int, int]] = None) -> str:
+def make_text_table(cells: List[List[Dict]]) -> str:
+    """
+    Makes a text representation of game field using texttable library
+
+    :param cells: array of array of cells dicts
+    :return: a pretty-formatted field
+    """
     table = Texttable()
     cells_size = len(cells)
     table.set_cols_width([3] * cells_size)
