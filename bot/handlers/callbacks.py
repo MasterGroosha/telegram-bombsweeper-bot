@@ -4,7 +4,7 @@ from typing import Dict
 from aiogram import types, Dispatcher
 from aiogram.dispatcher import FSMContext
 
-from minesweeper.game import get_newgame_data, untouched_cells_count, all_flags_match_bombs, is_victory, make_text_table
+from minesweeper.game import get_newgame_data, untouched_cells_count, all_flags_match_bombs, make_text_table
 from minesweeper.states import ClickMode, MaskFieldSquareStatus
 from bot.keyboards.kb_minefield import make_keyboard_from_minefield
 from bot.cbdata import cb_click, cb_switch_mode, cb_switch_flag

@@ -34,10 +34,6 @@ def all_flags_match_bombs(cells: List[List[Dict]]) -> bool:
     return True
 
 
-def is_victory(cells: List[List[Dict]]) -> bool:
-    return untouched_cells_count(cells) == 0 and all_flags_match_bombs(cells) is True
-
-
 def make_text_table(cells: List[List[Dict]], explosion: Optional[Tuple[int, int]] = None) -> str:
     table = Texttable()
     cells_size = len(cells)
