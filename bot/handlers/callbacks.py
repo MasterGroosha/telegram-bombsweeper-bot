@@ -10,6 +10,33 @@ from bot.keyboards.kb_minefield import make_keyboard_from_minefield
 from bot.cbdata import cb_click, cb_switch_mode, cb_switch_flag
 
 
+async def check_callback_data(call: types.CallbackQuery, state: FSMContext, callback_data: Dict):
+    fsm_data = await state.get_data()
+    game_data = fsm_data.get("game_data", {})
+    cells = game_data.get("cells")
+    game_id = fsm_data.get("game_id")
+
+    if game_id is None:
+        await call.message.edit_text("Something went wrong with this game, so it was removed.", reply_markup=None)
+        await call.answer()
+        return
+    elif game_id != callback_data.get("game_id"):
+        if cells is not None:
+            await call.message.edit_text(call.message.html_text + f"\n\n{make_text_table(cells)}", reply_markup=None)
+        else:
+            await call.message.edit_text("Something went wrong with this game, so it was removed.", reply_markup=None)
+        await call.answer(show_alert=True, text="This game is inaccessible, because there is more recent one!")
+        return
+
+    cb_prefix = callback_data.get("@")
+    if cb_prefix == "press":
+        await callback_open_square(call, state, callback_data)
+    elif cb_prefix == "flag":
+        await add_or_remove_flag(call, state, callback_data)
+    elif cb_prefix == "switchmode":
+        await switch_click_mode(call, state, callback_data)
+
+
 async def callback_newgame(call: types.CallbackQuery, state: FSMContext):
     size = 5
     bombs = 3
@@ -25,20 +52,10 @@ async def callback_newgame(call: types.CallbackQuery, state: FSMContext):
 
 
 async def callback_open_square(call: types.CallbackQuery, state: FSMContext, callback_data: Dict):
-    # todo: get rid of code duplication
     fsm_data = await state.get_data()
+    game_id = fsm_data.get("game_id")
     game_data = fsm_data.get("game_data", {})
     cells = game_data.get("cells")
-    game_id = fsm_data.get("game_id")
-
-    # if not game_id:
-    #     # todo:
-
-    if fsm_data.get("game_id") != callback_data.get("game_id"):
-        if cells is not None:
-            await call.message.edit_text(call.message.html_text + f"\n\n{make_text_table(cells)}")
-        await call.answer(show_alert=True, text="This game is inaccessible, because there is more recent one!")
-        return
 
     x = int(callback_data["x"])
     y = int(callback_data["y"])
@@ -75,20 +92,10 @@ async def callback_open_square(call: types.CallbackQuery, state: FSMContext, cal
 
 
 async def switch_click_mode(call: types.CallbackQuery, state: FSMContext, callback_data: Dict):
-    # todo: get rid of code duplication
     fsm_data = await state.get_data()
+    game_id = fsm_data.get("game_id")
     game_data = fsm_data.get("game_data", {})
     cells = game_data.get("cells")
-    game_id = fsm_data.get("game_id")
-
-    # if not game_id:
-    #     # todo:
-
-    if fsm_data.get("game_id") != callback_data.get("game_id"):
-        if cells is not None:
-            await call.message.edit_text(call.message.html_text + f"\n\n{make_text_table(cells)}")
-        await call.answer(show_alert=True, text="This game is inaccessible, because there is more recent one!")
-        return
 
     game_data["current_mode"] = int(callback_data["new_mode"])
     await state.update_data(game_data=game_data)
@@ -100,20 +107,10 @@ async def switch_click_mode(call: types.CallbackQuery, state: FSMContext, callba
 
 
 async def add_or_remove_flag(call: types.CallbackQuery, state: FSMContext, callback_data: Dict):
-    # todo: get rid of code duplication
     fsm_data = await state.get_data()
+    game_id = fsm_data.get("game_id")
     game_data = fsm_data.get("game_data", {})
     cells = game_data.get("cells")
-    game_id = fsm_data.get("game_id")
-
-    # if not game_id:
-    #     # todo:
-
-    if fsm_data.get("game_id") != callback_data.get("game_id"):
-        if cells is not None:
-            await call.message.edit_text(call.message.html_text + f"\n\n{make_text_table(cells)}")
-        await call.answer(show_alert=True, text="This game is inaccessible, because there is more recent one!")
-        return
 
     action = callback_data["action"]
     flag_x = int(callback_data["x"])
@@ -159,6 +156,6 @@ async def callback_ignore(call: types.CallbackQuery):
 def register_callbacks(dp: Dispatcher):
     dp.register_callback_query_handler(callback_newgame, text="newgame")
     dp.register_callback_query_handler(callback_ignore, text="ignore")
-    dp.register_callback_query_handler(callback_open_square, cb_click.filter())
-    dp.register_callback_query_handler(add_or_remove_flag, cb_switch_flag.filter())
-    dp.register_callback_query_handler(switch_click_mode, cb_switch_mode.filter())
+    dp.register_callback_query_handler(check_callback_data, cb_click.filter())
+    dp.register_callback_query_handler(check_callback_data, cb_switch_flag.filter())
+    dp.register_callback_query_handler(check_callback_data, cb_switch_mode.filter())
