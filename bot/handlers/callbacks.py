@@ -4,7 +4,7 @@ from typing import Dict, List, Union
 from aiogram import types, Dispatcher
 from aiogram.dispatcher import FSMContext
 
-from minesweeper.generators import generate_custom, generate_square_field
+from minesweeper.game import get_newgame_data, untouched_cells_count, all_flags_match_bombs, is_victory, make_text_table
 from minesweeper.states import ClickMode, MaskFieldSquareStatus
 from bot.keyboards.kb_minefield import make_keyboard_from_minefield
 from bot.cbdata import cb_click, cb_switch_mode, cb_switch_flag
@@ -26,46 +26,50 @@ async def callback_newgame(call: types.CallbackQuery, state: FSMContext):
 
 async def callback_open_square(call: types.CallbackQuery, state: FSMContext, callback_data: Dict):
     fsm_data = await state.get_data()
+    game_data = fsm_data.get("game_data", {})
+    cells = game_data.get("cells")
+    game_id = fsm_data.get("game_id")
+
+    # if not game_id:
+    #     # todo:
+
     if fsm_data.get("game_id") != callback_data.get("game_id"):
+        if cells is not None:
+            await call.message.edit_text(call.message.html_text + f"\n\n{make_text_table(cells)}")
         await call.answer(show_alert=True, text="This game is inaccessible, because there is more recent one!")
-        # todo: replace keyboard with text (or with not working keyboard)
         return
-    minefield = fsm_data.get("game_data", {}).get("minefield")
-    maskfield = fsm_data.get("game_data", {}).get("maskfield")
-    if minefield is None or maskfield is None:
-        # todo: game broke?
-        await call.answer(show_alert=True, text="Something went wrong, please, start a new game!")
-        return
+
     x = int(callback_data["x"])
     y = int(callback_data["y"])
 
-    if minefield[x][y] == "*":  # user lost
-        # mask = MaskFieldSquareStatus.BOMB
-        # todo: show field
-        await call.message.edit_text(call.message.html_text + "\n\nYou lost :(", reply_markup=None)
+    if cells[x][y]["value"] == "*":  # user lost
+        cells[x][y]["mask"] = MaskFieldSquareStatus.BOMB
+        await call.message.edit_text(
+            call.message.html_text + f"\n\n{make_text_table(cells)}\n\nYou lost :(",
+            reply_markup=None
+        )
     else:
-        mask = MaskFieldSquareStatus.OPEN
-        async with state.proxy() as data:
-            data["game_data"]["maskfield"][x][y] = mask
-        maskfield[x][y] = mask
-        if untouched_cells_count(maskfield) == 0:
-            if all_flags_match(minefield, maskfield):  # user won
-                # todo: show field
-                await call.message.edit_text(call.message.html_text + "\n\nYou won!", reply_markup=None)
-                await call.answer(show_alert=True, text="Congratulations! You won!")
-                return
-            else:  # some flag is improperly placed, keep trying
+        cells[x][y]["mask"] = MaskFieldSquareStatus.OPEN
+        if untouched_cells_count(cells) == 0:
+            if all_flags_match_bombs(cells):
+                await call.message.edit_text(
+                    call.message.html_text + f"\n\n{make_text_table(cells)}\n\nYou won! 🎉",
+                    reply_markup=None
+                )
+            else:
+                await state.update_data(game_data=game_data)
+                await call.message.edit_reply_markup(
+                    make_keyboard_from_minefield(cells, game_id, game_data["current_mode"])
+                )
                 await call.answer(
                     show_alert=True,
                     text="Looks like you've placed more flags than there are bombs on field. Please check them again."
                 )
-
-
-        await call.message.edit_reply_markup(
-            make_keyboard_from_minefield(
-                minefield, maskfield, callback_data.get("game_id"), fsm_data["game_data"]["current_mode"]
+        else:
+            await state.update_data(game_data=game_data)
+            await call.message.edit_reply_markup(
+                make_keyboard_from_minefield(cells, game_id, game_data["current_mode"])
             )
-        )
     await call.answer()
 
 
