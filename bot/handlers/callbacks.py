@@ -11,6 +11,9 @@ from bot.cbdata import cb_click, cb_switch_mode, cb_switch_flag
 
 
 async def check_callback_data(call: types.CallbackQuery, state: FSMContext, callback_data: Dict):
+    """
+    This is a "middleware" function, which does some checks to prevent duplicating code and breaking the logic
+    """
     fsm_data = await state.get_data()
     game_data = fsm_data.get("game_data", {})
     cells = game_data.get("cells")
@@ -28,6 +31,7 @@ async def check_callback_data(call: types.CallbackQuery, state: FSMContext, call
         await call.answer(show_alert=True, text="This game is inaccessible, because there is more recent one!")
         return
 
+    # Choose the right "real" function to call
     cb_prefix = callback_data.get("@")
     if cb_prefix == "press":
         await callback_open_square(call, state, callback_data)
@@ -52,6 +56,9 @@ async def callback_newgame(call: types.CallbackQuery, state: FSMContext):
 
 
 async def callback_open_square(call: types.CallbackQuery, state: FSMContext, callback_data: Dict):
+    """
+    Called when player clicks a HIDDEN cell (without any flags or numbers)
+    """
     fsm_data = await state.get_data()
     game_id = fsm_data.get("game_id")
     game_data = fsm_data.get("game_data", {})
@@ -60,20 +67,25 @@ async def callback_open_square(call: types.CallbackQuery, state: FSMContext, cal
     x = int(callback_data["x"])
     y = int(callback_data["y"])
 
-    if cells[x][y]["value"] == "*":  # user lost
+    # This cell contained a bomb
+    if cells[x][y]["value"] == "*":
         cells[x][y]["mask"] = MaskFieldSquareStatus.BOMB
         await call.message.edit_text(
             call.message.html_text + f"\n\n{make_text_table(cells)}\n\nYou lost :(",
             reply_markup=None
         )
+    # This cell contained a number
     else:
         cells[x][y]["mask"] = MaskFieldSquareStatus.OPEN
+        # If this is the last cell to open...
         if untouched_cells_count(cells) == 0:
+            # ...and all flags stand on bombs
             if all_flags_match_bombs(cells):
                 await call.message.edit_text(
                     call.message.html_text + f"\n\n{make_text_table(cells)}\n\nYou won! 🎉",
                     reply_markup=None
                 )
+            # ...or some flags stand on numbers
             else:
                 await state.update_data(game_data=game_data)
                 await call.message.edit_reply_markup(
@@ -83,6 +95,7 @@ async def callback_open_square(call: types.CallbackQuery, state: FSMContext, cal
                     show_alert=True,
                     text="Looks like you've placed more flags than there are bombs on field. Please check them again."
                 )
+        # If this is not the last cell to open
         else:
             await state.update_data(game_data=game_data)
             await call.message.edit_reply_markup(
@@ -92,6 +105,9 @@ async def callback_open_square(call: types.CallbackQuery, state: FSMContext, cal
 
 
 async def switch_click_mode(call: types.CallbackQuery, state: FSMContext, callback_data: Dict):
+    """
+    Called when player switches from CLICK (open) mode to FLAG mode
+    """
     fsm_data = await state.get_data()
     game_id = fsm_data.get("game_id")
     game_data = fsm_data.get("game_data", {})
@@ -107,6 +123,9 @@ async def switch_click_mode(call: types.CallbackQuery, state: FSMContext, callba
 
 
 async def add_or_remove_flag(call: types.CallbackQuery, state: FSMContext, callback_data: Dict):
+    """
+    Called when player puts a flag on HIDDEN cell or clicks a flag to remove it
+    """
     fsm_data = await state.get_data()
     game_id = fsm_data.get("game_id")
     game_data = fsm_data.get("game_data", {})
@@ -124,6 +143,7 @@ async def add_or_remove_flag(call: types.CallbackQuery, state: FSMContext, callb
         )
     elif action == "add":
         cells[flag_x][flag_y].update(mask=MaskFieldSquareStatus.FLAG)
+        # See callback_open_square() for explanation
         if untouched_cells_count(cells) == 0:
             if all_flags_match_bombs(cells):
                 await call.message.edit_text(
@@ -150,6 +170,10 @@ async def add_or_remove_flag(call: types.CallbackQuery, state: FSMContext, callb
 
 
 async def callback_ignore(call: types.CallbackQuery):
+    """
+    Called when player clicks on an open number.
+    In this case, we simply ignore this callback.
+    """
     await call.answer()
 
 
