@@ -1,2 +1,5 @@
 aiogram~=2.14.0
 pytest==6.2.4
+texttable==1.6.4
+wcwidth==0.2.5
+cjkwrap==2.2
