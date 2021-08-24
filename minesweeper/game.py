@@ -3,7 +3,7 @@ from typing import Dict, List
 from texttable import Texttable
 
 from minesweeper.generators import generate_custom
-from minesweeper.states import MaskFieldSquareStatus
+from minesweeper.states import CellMask
 from minesweeper.states import ClickMode
 
 
@@ -34,7 +34,7 @@ def untouched_cells_count(cells: List[List[Dict]]) -> int:
     counter = 0
     for row in cells:
         for cell in row:
-            if cell["mask"] == MaskFieldSquareStatus.HIDDEN:
+            if cell["mask"] == CellMask.HIDDEN:
                 counter += 1
     return counter
 
@@ -49,7 +49,7 @@ def all_flags_match_bombs(cells: List[List[Dict]]) -> bool:
     """
     for row in cells:
         for cell in row:
-            if cell["mask"] == MaskFieldSquareStatus.FLAG and cell["value"] != "*":
+            if cell["mask"] == CellMask.FLAG and cell["value"] != "*":
                 return False
     return True
 
@@ -71,19 +71,19 @@ def make_text_table(cells: List[List[Dict]]) -> str:
         data_single_row = []
         for cell in cell_row:
             cell_mask = cell["mask"]
-            if cell_mask == MaskFieldSquareStatus.OPEN:
+            if cell_mask == CellMask.OPEN:
                 data_single_row.append(cell["value"])
-            elif cell_mask == MaskFieldSquareStatus.HIDDEN:
+            elif cell_mask == CellMask.HIDDEN:
                 if cell["value"] == "*":
                     data_single_row.append("💣")
                 else:
                     data_single_row.append("•")
-            elif cell_mask == MaskFieldSquareStatus.FLAG:
+            elif cell_mask == CellMask.FLAG:
                 if cell["value"] == "*":
                     data_single_row.append("🚩")
                 else:
                     data_single_row.append("🚫")
-            elif cell_mask == MaskFieldSquareStatus.BOMB:
+            elif cell_mask == CellMask.BOMB:
                 data_single_row.append("💥")
         data_rows.append(data_single_row)
     table.add_rows(data_rows, header=False)

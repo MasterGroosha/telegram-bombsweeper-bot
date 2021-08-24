@@ -5,7 +5,7 @@ from aiogram import types, Dispatcher
 from aiogram.dispatcher import FSMContext
 
 from minesweeper.game import get_newgame_data, untouched_cells_count, all_flags_match_bombs, make_text_table
-from minesweeper.states import ClickMode, MaskFieldSquareStatus
+from minesweeper.states import ClickMode, CellMask
 from bot.keyboards.kb_minefield import make_keyboard_from_minefield
 from bot.cbdata import cb_click, cb_switch_mode, cb_switch_flag
 
@@ -69,14 +69,14 @@ async def callback_open_square(call: types.CallbackQuery, state: FSMContext, cal
 
     # This cell contained a bomb
     if cells[x][y]["value"] == "*":
-        cells[x][y]["mask"] = MaskFieldSquareStatus.BOMB
+        cells[x][y]["mask"] = CellMask.BOMB
         await call.message.edit_text(
             call.message.html_text + f"\n\n{make_text_table(cells)}\n\nYou lost :(",
             reply_markup=None
         )
     # This cell contained a number
     else:
-        cells[x][y]["mask"] = MaskFieldSquareStatus.OPEN
+        cells[x][y]["mask"] = CellMask.OPEN
         # If this is the last cell to open...
         if untouched_cells_count(cells) == 0:
             # ...and all flags stand on bombs
@@ -136,13 +136,13 @@ async def add_or_remove_flag(call: types.CallbackQuery, state: FSMContext, callb
     flag_y = int(callback_data["y"])
 
     if action == "remove":
-        cells[flag_x][flag_y].update(mask=MaskFieldSquareStatus.HIDDEN)
+        cells[flag_x][flag_y].update(mask=CellMask.HIDDEN)
         await state.update_data(game_data=game_data)
         await call.message.edit_reply_markup(
             make_keyboard_from_minefield(cells, game_id, game_data["current_mode"])
         )
     elif action == "add":
-        cells[flag_x][flag_y].update(mask=MaskFieldSquareStatus.FLAG)
+        cells[flag_x][flag_y].update(mask=CellMask.FLAG)
         # See callback_open_square() for explanation
         if untouched_cells_count(cells) == 0:
             if all_flags_match_bombs(cells):
