@@ -10,14 +10,22 @@ def print_field(field: List[List]):
         print()
 
 
-def generate_square_field(k: int) -> List[List]:
+def __generate_square_field(k: int) -> List[List]:
     result = []
     for i in range(k):
-        result.append([0 for x in range(k)])
+        result.append([0] * k)
     return result
 
 
-def _generate_valid_coordinates(x: int, y: int, size: int) -> List[Tuple]:
+def __find_neighbours(x: int, y: int, size: int) -> List[Tuple]:
+    """
+    Finds neighbours for a cell. Those which fall out of the field are skipped
+
+    :param x: current cell's X coord
+    :param y: current cell's Y coord
+    :param size: field single dimension size (because field is square)
+    :return: list of (x, y) pairs of valid neighbours
+    """
     curr_x = x
     curr_y = y
     result = []
@@ -64,28 +72,29 @@ def _generate_valid_coordinates(x: int, y: int, size: int) -> List[Tuple]:
     return result
 
 
-def generate_custom(size: int, maxbombs: int) -> List[List]:
-    field = generate_square_field(size)
+def generate_custom(size: int, bombs: int) -> List[List]:
+    """
+    Generates custom square field with bombs (*).
+    If cell contains a bomb, it has "*" value.
+    Otherwise, it contains a number of adjacent bomb cells.
+
+    :param size: a single dimension of a field
+    :param bombs: bombs count for this field
+    :return: an array of arrays of cells.
+    """
+    field = __generate_square_field(size)
     current_count = 0
 
-    while current_count < maxbombs:
-        x = randint(0, 4)
-        y = randint(0, 4)
+    while current_count < bombs:
+        x = randint(0, size-1)
+        y = randint(0, size-1)
 
         if field[x][y] == "*":
-            print("hit!")
             continue
         field[x][y] = "*"
-        neigbours = _generate_valid_coordinates(x, y, 5)
-        for nx, ny in neigbours:
+        neighbours = __find_neighbours(x, y, 5)
+        for nx, ny in neighbours:
             if field[nx][ny] != "*":
                 field[nx][ny] += 1
-
         current_count += 1
-
-    print_field(field)
     return field
-
-
-if __name__ == '__main__':
-    generate_custom(5, 3)

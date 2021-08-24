@@ -17,4 +17,4 @@ from minesweeper import generators
     ]
 )
 def test_valid_increments(x: int, y: int, size: int, expected: List[Tuple]):
-    assert sorted(generators._generate_valid_coordinates(x, y, size)) == sorted(expected)
+    assert sorted(generators.__find_neighbours(x, y, size)) == sorted(expected)
