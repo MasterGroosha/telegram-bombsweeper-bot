@@ -73,22 +73,28 @@ async def callback_open_square(call: types.CallbackQuery, state: FSMContext, cal
     await call.answer()
 
 
-async def callback_switch_flag_mode(call: types.CallbackQuery, state: FSMContext, callback_data: Dict):
+async def switch_click_mode(call: types.CallbackQuery, state: FSMContext, callback_data: Dict):
+    # todo: get rid of code duplication
     fsm_data = await state.get_data()
+    game_data = fsm_data.get("game_data", {})
+    cells = game_data.get("cells")
     game_id = fsm_data.get("game_id")
-    # if fsm_data.get("game_id") != callback_data.get("game_id"):
-    #     await call.answer(show_alert=True, text="This game is inaccessible, because there is more recent one!")
-    #     # todo: replace keyboard with text (or with not working keyboard)
-    #     return
-    async with state.proxy() as data:
-        game_data = data["game_data"]
-        new_mode = int(callback_data["new_mode"])
-        game_data["current_mode"] = new_mode
-        await call.message.edit_reply_markup(
-            make_keyboard_from_minefield(
-                game_data["minefield"], game_data["maskfield"], fsm_data["game_id"], new_mode
-            )
-        )
+
+    # if not game_id:
+    #     # todo:
+
+    if fsm_data.get("game_id") != callback_data.get("game_id"):
+        if cells is not None:
+            await call.message.edit_text(call.message.html_text + f"\n\n{make_text_table(cells)}")
+        await call.answer(show_alert=True, text="This game is inaccessible, because there is more recent one!")
+        return
+
+    game_data["current_mode"] = int(callback_data["new_mode"])
+    await state.update_data(game_data=game_data)
+
+    await call.message.edit_reply_markup(
+        make_keyboard_from_minefield(cells, game_id, game_data["current_mode"])
+    )
     await call.answer()
 
 
@@ -140,4 +146,4 @@ def register_callbacks(dp: Dispatcher):
     dp.register_callback_query_handler(callback_ignore, text="ignore")
     dp.register_callback_query_handler(callback_open_square, cb_click.filter())
     dp.register_callback_query_handler(callback_switch_flag_state, cb_switch_flag.filter())
-    dp.register_callback_query_handler(callback_switch_flag_mode, cb_switch_mode.filter())
+    dp.register_callback_query_handler(switch_click_mode, cb_switch_mode.filter())
