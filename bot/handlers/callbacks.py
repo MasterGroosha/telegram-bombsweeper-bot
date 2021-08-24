@@ -10,24 +10,6 @@ from bot.keyboards.kb_minefield import make_keyboard_from_minefield
 from bot.cbdata import cb_click, cb_switch_mode, cb_switch_flag
 
 
-def untouched_cells_count(maskfield: List[List[int]]) -> int:
-    counter = 0
-    for row in maskfield:
-        for cell in row:
-            if cell == 0:
-                counter += 1
-    return counter
-
-
-def all_flags_match(minefield: List[List[Union[str, int]]], maskfield: List[List[int]]) -> bool:
-    size = len(minefield)
-    for x in range(size):
-        for y in range(size):
-            if maskfield[x][y] == MaskFieldSquareStatus.FLAG and minefield[x][y] != "*":
-                return False
-    return True
-
-
 async def callback_newgame(call: types.CallbackQuery, state: FSMContext):
     size = 5
     bombs = 3
