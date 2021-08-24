@@ -34,7 +34,7 @@ async def callback_newgame(call: types.CallbackQuery, state: FSMContext):
     game_id = str(uuid4())
     minefield = generate_custom(size, bombs)
     empty_maskfield = generate_square_field(size)
-    current_mode = ClickMode.OPEN
+    current_mode = ClickMode.CLICK
     newgame_dict = {
         "game_id": game_id,
         "game_data": {

@@ -1,5 +1,5 @@
 class ClickMode:
-    OPEN = 0
+    CLICK = 0
     FLAG = 1
 
 

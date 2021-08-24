@@ -24,7 +24,7 @@ def make_keyboard_from_minefield(minefield: List[List], fieldmask: List[List], g
                 kb_field[x][y] = InlineKeyboardButton(text=minefield[x][y], callback_data="ignore")
             elif fieldmask_value == MaskFieldSquareStatus.HIDDEN:
                 btn = InlineKeyboardButton(text="•")
-                if click_mode == ClickMode.OPEN:
+                if click_mode == ClickMode.CLICK:
                     btn.callback_data = cb_click.new(game_id=game_id, x=x, y=y)
                 else:
                     btn.callback_data = cb_switch_flag.new(game_id=game_id, action="add", x=x, y=y)
@@ -44,7 +44,7 @@ def make_keyboard_from_minefield(minefield: List[List], fieldmask: List[List], g
     if click_mode == ClickMode.FLAG:
         switch_mode_btn = InlineKeyboardButton(
             text="🔄 Current mode: Flag",
-            callback_data=cb_switch_mode.new(game_id=game_id, new_mode=ClickMode.OPEN))
+            callback_data=cb_switch_mode.new(game_id=game_id, new_mode=ClickMode.CLICK))
     else:
         switch_mode_btn = InlineKeyboardButton(
             text="🔄 Current mode: Click",
