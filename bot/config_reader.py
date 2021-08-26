@@ -1,5 +1,5 @@
-import configparser
 from dataclasses import dataclass
+from os import getenv
 
 
 @dataclass
@@ -13,13 +13,8 @@ class Config:
 
 
 def load_config(path: str):
-    config = configparser.ConfigParser()
-    config.read(path)
-
-    tg_bot = config["tg_bot"]
-
     return Config(
         tg_bot=TgBot(
-            token=tg_bot["token"],
+            token=getenv("BOT_TOKEN"),
         )
     )
