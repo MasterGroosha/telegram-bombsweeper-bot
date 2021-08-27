@@ -5,9 +5,13 @@ from os.path import join
 from aiogram import Bot, Dispatcher
 from aiogram.types import BotCommand, BotCommandScopeChat, BotCommandScopeDefault
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 
 from bot.config_reader import load_config
 # from bot.middlewares.config import ConfigMiddleware
+from bot.middlewares.db import DbSessionMiddleware
+from bot.db.utils import make_connection_string
 from bot.handlers.default_commands import register_default_handlers
 from bot.handlers.callbacks import register_callbacks
 
@@ -41,6 +45,15 @@ async def main():
     # Чтение файла конфигурации
     config = load_config()
 
+    engine = create_async_engine(
+        make_connection_string(config.db),
+        future=True,
+        echo=False
+    )
+
+    # Создание пула соединений к СУБД
+    db_pool = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
+
     # Объявление и инициализация объектов бота и диспетчера
     bot = Bot(token=config.tg_bot.token, parse_mode="HTML")
     dp = Dispatcher(bot, storage=MemoryStorage())
@@ -51,6 +64,7 @@ async def main():
 
     # Регистрация мидлвари
     # dp.middleware.setup(ConfigMiddleware(config))
+    dp.middleware.setup(DbSessionMiddleware(db_pool))
 
     # Регистрация /-команд в интерфейсе
     # await set_bot_commands(bot)
