@@ -2,7 +2,7 @@ from typing import List, Tuple
 
 import pytest
 
-from minesweeper import generators
+from bot.minesweeper import generators
 
 
 @pytest.mark.parametrize(

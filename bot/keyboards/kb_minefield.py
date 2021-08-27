@@ -3,7 +3,7 @@ from typing import List
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 from bot.cbdata import cb_switch_mode, cb_click, cb_switch_flag
-from minesweeper.states import ClickMode, CellMask
+from bot.minesweeper.states import ClickMode, CellMask
 
 
 def make_keyboard_from_minefield(cells: List[List], game_id: str, click_mode: str) -> InlineKeyboardMarkup:
