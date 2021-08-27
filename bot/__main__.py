@@ -36,43 +36,44 @@ logger = logging.getLogger(__name__)
 
 
 async def main():
-    # Настройка логирования в stdout
+    # Logging to stdout
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
     )
 
-    # Чтение файла конфигурации
+    # Reading config file
     config = load_config()
 
+    # Creating DB engine for PostgreSQL
     engine = create_async_engine(
         make_connection_string(config.db),
         future=True,
         echo=False
     )
 
-    # Создание пула соединений к СУБД
+    # Creating DB connections pool
     db_pool = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
-    # Объявление и инициализация объектов бота и диспетчера
+    # Creating bot and its dispatcher
     bot = Bot(token=config.tg_bot.token, parse_mode="HTML")
     dp = Dispatcher(bot, storage=MemoryStorage())
 
-    # Регистрация хэндлеров
+    # Register handlers
     register_default_handlers(dp)
     register_callbacks(dp)
 
-    # Регистрация мидлвари
+    # Register middlewares
     # dp.middleware.setup(ConfigMiddleware(config))
     dp.middleware.setup(DbSessionMiddleware(db_pool))
 
-    # Регистрация /-команд в интерфейсе
+    # Register /-commands in UI
     # await set_bot_commands(bot)
 
     logger.info("Starting bot")
 
-    # Запуск поллинга
-    # await dp.skip_updates()  # пропуск накопившихся апдейтов (необязательно)
+    # Starting polling
+    # await dp.skip_updates()  # uncomment to skip pending updates (optional)
     try:
         await dp.start_polling()
     finally:
