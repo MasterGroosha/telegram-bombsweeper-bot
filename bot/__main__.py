@@ -39,7 +39,7 @@ async def main():
     )
 
     # Чтение файла конфигурации
-    config = load_config(join("bot", "config", "bot.ini"))
+    config = load_config()
 
     # Объявление и инициализация объектов бота и диспетчера
     bot = Bot(token=config.tg_bot.token, parse_mode="HTML")
