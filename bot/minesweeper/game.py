@@ -86,5 +86,4 @@ def make_text_table(cells: List[List[Dict]]) -> str:
                 data_single_row.append("💥")
         data_rows.append(data_single_row)
     table.add_rows(data_rows, header=False)
-    print(table.draw())
     return f"<code>{table.draw()}</code>"

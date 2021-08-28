@@ -3,13 +3,6 @@ from typing import List, Tuple
 from random import randint
 
 
-def print_field(field: List[List]):
-    for row in field:
-        for item in row:
-            print(f"{item}\t", end="")
-        print()
-
-
 def __generate_square_field(k: int) -> List[List]:
     result = []
     for i in range(k):
