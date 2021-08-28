@@ -1,0 +1,59 @@
+version: '3.8'
+services:
+    db:
+        image: postgres:13-alpine
+        restart: on-failure
+        environment:
+            POSTGRES_USER: ${DB_USER}
+            POSTGRES_PASSWORD: ${DB_PASS}
+            POSTGRES_DB: ${DB_NAME}
+        volumes:
+            - "postgres_data:/var/lib/postgresql/data"
+# Uncomment if you need database admin GUI
+#    pgadmin:
+#        container_name: pgadmin4_container
+#        image: dpage/pgadmin4
+#        restart: on-failure
+#        environment:
+#            PGADMIN_DEFAULT_EMAIL: admin@admin.com
+#            PGADMIN_DEFAULT_PASSWORD: your_password
+#        ports:
+#            - "5050:80"
+#        volumes:
+#            - "pgadmin_data:/var/lib/pgadmin"
+    db_migration:
+        build: .
+        depends_on:
+            -   db
+        environment:
+            -   DB_HOST
+            -   DB_PORT
+            -   DB_NAME
+            -   DB_USER
+            -   DB_PASS
+        command: sh -c "python -m alembic upgrade head"
+
+    bot:
+        build: .
+        stop_signal: SIGINT
+        restart: on-failure
+        env_file: .env
+        depends_on:
+            - db
+            - db_migration
+
+
+volumes:
+    postgres_data:
+        driver: local
+        driver_opts:
+            type: 'none'
+            o: 'bind'
+            device: './postgres_data'
+# Uncomment if you use pgadmin service above
+#    pgadmin_data:
+#        driver: local
+#        driver_opts:
+#            type: 'none'
+#            o: 'bind'
+#            device: './pgadmin_data'
