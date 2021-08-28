@@ -14,6 +14,14 @@ from bot.db.models import GameHistoryEntry
 
 
 async def log_game(session: AsyncSession, data: Dict, telegram_id: int, status: str):
+    """
+    Send end game event to database
+
+    :param session: SQLAlchemy DB session
+    :param data: game data dictionary (only size is taken for now)
+    :param telegram_id: Player's Telegram ID
+    :param status: "win" or "lose"
+    """
     entry = GameHistoryEntry()
     entry.game_id = data["game_id"]
     entry.played_at = datetime.utcnow()
