@@ -56,14 +56,16 @@ async def check_callback_data(call: types.CallbackQuery, state: FSMContext, call
 
 
 async def callback_newgame(call: types.CallbackQuery, state: FSMContext):
+    # todo: add separate buttons for different fields (e.g. 5x5, 6x6 and 7x7)
     size = 5
     bombs = 3
+
     game_id = str(uuid4())
     newgame_dict = {"game_id": game_id, "game_data": get_newgame_data(size, bombs)}
     await state.set_data(newgame_dict)
     await call.message.edit_text(call.message.html_text + "\n\nGame started!")
     await call.message.answer(
-        "This is a debug message, please, change it",
+        f"You're currently playing {size}x{size} field, {bombs} bombs",
         reply_markup=make_keyboard_from_minefield(newgame_dict["game_data"]["cells"], game_id, ClickMode.CLICK)
     )
     await call.answer()
