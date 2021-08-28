@@ -21,6 +21,7 @@ def upgrade():
     op.create_table(
         'gameshistory',
         sa.Column('game_id', postgresql.UUID(), nullable=False),
+        sa.Column('played_at', sa.DateTime(), nullable=False),
         sa.Column('telegram_id', sa.BigInteger(), nullable=False),
         sa.Column('field_size', sa.Integer(), nullable=False),
         sa.Column('victory', sa.Boolean(), nullable=False),

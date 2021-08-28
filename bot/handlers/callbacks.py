@@ -1,16 +1,30 @@
+from datetime import datetime
 from uuid import uuid4
 from typing import Dict
 
 from aiogram import types, Dispatcher
 from aiogram.dispatcher import FSMContext
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.minesweeper.game import get_newgame_data, untouched_cells_count, all_flags_match_bombs, make_text_table
 from bot.minesweeper.states import ClickMode, CellMask
 from bot.keyboards.kb_minefield import make_keyboard_from_minefield
 from bot.cbdata import cb_click, cb_switch_mode, cb_switch_flag
+from bot.db.models import GameHistoryEntry
 
 
-async def check_callback_data(call: types.CallbackQuery, state: FSMContext, callback_data: Dict):
+async def log_game(session: AsyncSession, data: Dict, telegram_id: int, status: str):
+    entry = GameHistoryEntry()
+    entry.game_id = data["game_id"]
+    entry.played_at = datetime.utcnow()
+    entry.telegram_id = telegram_id
+    entry.field_size = data["game_data"]["size"]
+    entry.victory = status == "win"
+    session.add(entry)
+    await session.commit()
+
+
+async def check_callback_data(call: types.CallbackQuery, state: FSMContext, callback_data: Dict, session: AsyncSession):
     """
     This is a "middleware" function, which does some checks to prevent duplicating code and breaking the logic
     """
@@ -34,9 +48,9 @@ async def check_callback_data(call: types.CallbackQuery, state: FSMContext, call
     # Choose the right "real" function to call
     cb_prefix = callback_data.get("@")
     if cb_prefix == "press":
-        await callback_open_square(call, state, callback_data)
+        await callback_open_square(call, state, callback_data, session)
     elif cb_prefix == "flag":
-        await add_or_remove_flag(call, state, callback_data)
+        await add_or_remove_flag(call, state, callback_data, session)
     elif cb_prefix == "switchmode":
         await switch_click_mode(call, state, callback_data)
 
@@ -55,7 +69,8 @@ async def callback_newgame(call: types.CallbackQuery, state: FSMContext):
     await call.answer()
 
 
-async def callback_open_square(call: types.CallbackQuery, state: FSMContext, callback_data: Dict):
+async def callback_open_square(call: types.CallbackQuery, state: FSMContext,
+                               callback_data: Dict, session: AsyncSession):
     """
     Called when player clicks a HIDDEN cell (without any flags or numbers)
     """
@@ -74,6 +89,7 @@ async def callback_open_square(call: types.CallbackQuery, state: FSMContext, cal
             call.message.html_text + f"\n\n{make_text_table(cells)}\n\nYou lost :(",
             reply_markup=None
         )
+        await log_game(session, fsm_data, call.from_user.id, "lose")
     # This cell contained a number
     else:
         cells[x][y]["mask"] = CellMask.OPEN
@@ -85,6 +101,7 @@ async def callback_open_square(call: types.CallbackQuery, state: FSMContext, cal
                     call.message.html_text + f"\n\n{make_text_table(cells)}\n\nYou won! 🎉",
                     reply_markup=None
                 )
+                await log_game(session, fsm_data, call.from_user.id, "win")
             # ...or some flags stand on numbers
             else:
                 await state.update_data(game_data=game_data)
@@ -122,7 +139,8 @@ async def switch_click_mode(call: types.CallbackQuery, state: FSMContext, callba
     await call.answer()
 
 
-async def add_or_remove_flag(call: types.CallbackQuery, state: FSMContext, callback_data: Dict):
+async def add_or_remove_flag(call: types.CallbackQuery, state: FSMContext,
+                             callback_data: Dict, session: AsyncSession):
     """
     Called when player puts a flag on HIDDEN cell or clicks a flag to remove it
     """
@@ -150,6 +168,7 @@ async def add_or_remove_flag(call: types.CallbackQuery, state: FSMContext, callb
                     call.message.html_text + f"\n\n{make_text_table(cells)}\n\nYou won! 🎉",
                     reply_markup=None
                 )
+                await log_game(session, fsm_data, call.from_user.id, "win")
             else:
                 await state.update_data(game_data=game_data)
                 await call.message.edit_reply_markup(
