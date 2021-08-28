@@ -6,4 +6,3 @@ cjkwrap==2.2
 sqlalchemy~=1.4.0
 alembic==1.6.5
 asyncpg==0.24.0
-wheel==0.37.0
