@@ -2,3 +2,4 @@ venv/
 .vscode/
 .idea/
 .env
+/docker-compose.yml
