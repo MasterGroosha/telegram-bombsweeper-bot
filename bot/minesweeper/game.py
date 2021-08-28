@@ -3,8 +3,7 @@ from typing import Dict, List
 from texttable import Texttable
 
 from bot.minesweeper.generators import generate_custom
-from bot.minesweeper.states import CellMask
-from bot.minesweeper.states import ClickMode
+from bot.minesweeper.states import CellMask, ClickMode
 
 
 def get_newgame_data(size: int, bombs: int) -> Dict:
