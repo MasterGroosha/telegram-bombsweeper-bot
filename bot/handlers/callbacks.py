@@ -135,7 +135,7 @@ async def callback_open_square(call: types.CallbackQuery, state: FSMContext,
                 await call.message.edit_reply_markup(
                     make_keyboard_from_minefield(cells, game_id, game_data["current_mode"])
                 )
-    await call.answer()
+    await call.answer(cache_time=2)
 
 
 async def switch_click_mode(call: types.CallbackQuery, state: FSMContext, callback_data: Dict):
@@ -207,7 +207,7 @@ async def add_or_remove_flag(call: types.CallbackQuery, state: FSMContext,
                 await call.message.edit_reply_markup(
                     make_keyboard_from_minefield(cells, game_id, game_data["current_mode"])
                 )
-    await call.answer()
+    await call.answer(cache_time=1)
 
 
 async def callback_ignore(call: types.CallbackQuery):
