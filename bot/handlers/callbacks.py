@@ -40,7 +40,6 @@ async def check_callback_data(call: types.CallbackQuery, state: FSMContext, call
     """
     fsm_data = await state.get_data()
     game_data = fsm_data.get("game_data", {})
-    cells = game_data.get("cells")
     game_id = fsm_data.get("game_id")
 
     if game_id is None:
