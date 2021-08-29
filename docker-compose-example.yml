@@ -1,8 +1,17 @@
 version: '3.8'
 services:
+    redis:
+        image: redis:6.0-alpine
+        restart: "no"
+        environment:
+            - REDIS_HOST
+        volumes:
+            - "redis_config:/usr/local/etc/redis"
+            - "redis_data:/data"
+        command: "redis-server /usr/local/etc/redis/redis.conf"
     db:
         image: postgres:13-alpine
-        restart: on-failure
+        restart: "on-failure"
         environment:
             POSTGRES_USER: ${DB_USER}
             POSTGRES_PASSWORD: ${DB_PASS}
@@ -21,7 +30,6 @@ services:
             -   DB_USER
             -   DB_PASS
         command: sh -c "python -m alembic upgrade head"
-
     bot:
         image: "groosha/telegram-minesweeper-bot:${IMAGE}"
         stop_signal: SIGINT
@@ -38,4 +46,16 @@ volumes:
         driver_opts:
             type: 'none'
             o: 'bind'
-            device: './postgres_data'
+            device: './pg-data'
+    redis_config:
+        driver: local
+        driver_opts:
+            type: 'none'
+            o: 'bind'
+            device: ./redis-config'
+    redis_data:
+        driver: local
+        driver_opts:
+            type: 'none'
+            o: 'bind'
+            device: './redis-data'
