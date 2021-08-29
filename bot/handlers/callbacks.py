@@ -7,6 +7,7 @@ from aiogram import types, Dispatcher
 from aiogram.dispatcher import FSMContext
 from aiogram.utils.exceptions import MessageNotModified
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import IntegrityError
 
 from bot.minesweeper.game import get_newgame_data, untouched_cells_count, all_flags_match_bombs, make_text_table
 from bot.minesweeper.states import ClickMode, CellMask
@@ -31,7 +32,10 @@ async def log_game(session: AsyncSession, data: Dict, telegram_id: int, status: 
     entry.field_size = data["game_data"]["size"]
     entry.victory = status == "win"
     session.add(entry)
-    await session.commit()
+    # If a user is quick enough, there might be 2 events with the same UUID.
+    # There's not much we can do, so simply ignore it until we come up with a better solution
+    with suppress(IntegrityError):
+        await session.commit()
 
 
 async def check_callback_data(call: types.CallbackQuery, state: FSMContext, callback_data: Dict, session: AsyncSession):
