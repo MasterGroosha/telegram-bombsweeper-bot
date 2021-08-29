@@ -9,7 +9,6 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 
 from bot.config_reader import load_config
-# from bot.middlewares.config import ConfigMiddleware
 from bot.middlewares.db import DbSessionMiddleware
 from bot.db.utils import make_connection_string
 from bot.handlers.default_commands import register_default_handlers
@@ -64,7 +63,6 @@ async def main():
     register_callbacks(dp)
 
     # Register middlewares
-    # dp.middleware.setup(ConfigMiddleware(config))
     dp.middleware.setup(DbSessionMiddleware(db_pool))
 
     # Register /-commands in UI
