@@ -6,3 +6,5 @@ DB_PORT=5432
 DB_NAME=yourdb
 DB_USER=user
 DB_PASS=s3cr3t
+# redis (FSM)
+REDIS_HOST=redis

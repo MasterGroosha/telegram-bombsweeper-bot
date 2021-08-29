@@ -4,7 +4,7 @@ from os.path import join
 
 from aiogram import Bot, Dispatcher
 from aiogram.types import BotCommand, BotCommandScopeChat, BotCommandScopeDefault
-from aiogram.contrib.fsm_storage.memory import MemoryStorage
+from aiogram.contrib.fsm_storage.redis import RedisStorage2
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 
@@ -56,7 +56,7 @@ async def main():
 
     # Creating bot and its dispatcher
     bot = Bot(token=config.tg_bot.token, parse_mode="HTML")
-    dp = Dispatcher(bot, storage=MemoryStorage())
+    dp = Dispatcher(bot, storage=RedisStorage2(config.redis.host))
 
     # Register handlers
     register_default_handlers(dp)
