@@ -9,20 +9,9 @@ services:
             POSTGRES_DB: ${DB_NAME}
         volumes:
             - "postgres_data:/var/lib/postgresql/data"
-# Uncomment if you need database admin GUI
-#    pgadmin:
-#        container_name: pgadmin4_container
-#        image: dpage/pgadmin4
-#        restart: on-failure
-#        environment:
-#            PGADMIN_DEFAULT_EMAIL: admin@admin.com
-#            PGADMIN_DEFAULT_PASSWORD: your_password
-#        ports:
-#            - "5050:80"
-#        volumes:
-#            - "pgadmin_data:/var/lib/pgadmin"
     db_migration:
-        build: .
+        image: "groosha/telegram-minesweeper-bot:${IMAGE}"
+        restart: "on-failure"
         depends_on:
             -   db
         environment:
@@ -34,9 +23,9 @@ services:
         command: sh -c "python -m alembic upgrade head"
 
     bot:
-        build: .
+        image: "groosha/telegram-minesweeper-bot:${IMAGE}"
         stop_signal: SIGINT
-        restart: on-failure
+        restart: "on-failure"
         env_file: .env
         depends_on:
             - db
@@ -50,10 +39,3 @@ volumes:
             type: 'none'
             o: 'bind'
             device: './postgres_data'
-# Uncomment if you use pgadmin service above
-#    pgadmin_data:
-#        driver: local
-#        driver_opts:
-#            type: 'none'
-#            o: 'bind'
-#            device: './pgadmin_data'

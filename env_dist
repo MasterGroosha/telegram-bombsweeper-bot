@@ -8,3 +8,5 @@ DB_USER=user
 DB_PASS=s3cr3t
 # redis (FSM)
 REDIS_HOST=redis
+# docker image
+IMAGE=latest
