@@ -1,9 +1,11 @@
+from contextlib import suppress
 from datetime import datetime
 from uuid import uuid4
 from typing import Dict
 
 from aiogram import types, Dispatcher
 from aiogram.dispatcher import FSMContext
+from aiogram.utils.exceptions import MessageNotModified
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.minesweeper.game import get_newgame_data, untouched_cells_count, all_flags_match_bombs, make_text_table
@@ -46,10 +48,8 @@ async def check_callback_data(call: types.CallbackQuery, state: FSMContext, call
         await call.answer()
         return
     elif game_id != callback_data.get("game_id"):
-        if cells is not None:
-            await call.message.edit_text(call.message.html_text + f"\n\n{make_text_table(cells)}", reply_markup=None)
-        else:
-            await call.message.edit_text("Something went wrong with this game, so it was removed.", reply_markup=None)
+        with suppress(MessageNotModified):
+            await call.message.edit_text("This game is no longer accessible", reply_markup=None)
         await call.answer(show_alert=True, text="This game is inaccessible, because there is more recent one!")
         return
 
@@ -95,10 +95,11 @@ async def callback_open_square(call: types.CallbackQuery, state: FSMContext,
     # This cell contained a bomb
     if cells[x][y]["value"] == "*":
         cells[x][y]["mask"] = CellMask.BOMB
-        await call.message.edit_text(
-            call.message.html_text + f"\n\n{make_text_table(cells)}\n\nYou lost :(",
-            reply_markup=None
-        )
+        with suppress(MessageNotModified):
+            await call.message.edit_text(
+                call.message.html_text + f"\n\n{make_text_table(cells)}\n\nYou lost :(",
+                reply_markup=None
+            )
         await log_game(session, fsm_data, call.from_user.id, "lose")
     # This cell contained a number
     else:
@@ -107,17 +108,19 @@ async def callback_open_square(call: types.CallbackQuery, state: FSMContext,
         if untouched_cells_count(cells) == 0:
             # ...and all flags stand on bombs
             if all_flags_match_bombs(cells):
-                await call.message.edit_text(
-                    call.message.html_text + f"\n\n{make_text_table(cells)}\n\nYou won! 🎉",
-                    reply_markup=None
-                )
+                with suppress(MessageNotModified):
+                    await call.message.edit_text(
+                        call.message.html_text + f"\n\n{make_text_table(cells)}\n\nYou won! 🎉",
+                        reply_markup=None
+                    )
                 await log_game(session, fsm_data, call.from_user.id, "win")
             # ...or some flags stand on numbers
             else:
                 await state.update_data(game_data=game_data)
-                await call.message.edit_reply_markup(
-                    make_keyboard_from_minefield(cells, game_id, game_data["current_mode"])
-                )
+                with suppress(MessageNotModified):
+                    await call.message.edit_reply_markup(
+                        make_keyboard_from_minefield(cells, game_id, game_data["current_mode"])
+                    )
                 await call.answer(
                     show_alert=True,
                     text="Looks like you've placed more flags than there are bombs on field. Please check them again."
@@ -125,9 +128,10 @@ async def callback_open_square(call: types.CallbackQuery, state: FSMContext,
         # If this is not the last cell to open
         else:
             await state.update_data(game_data=game_data)
-            await call.message.edit_reply_markup(
-                make_keyboard_from_minefield(cells, game_id, game_data["current_mode"])
-            )
+            with suppress(MessageNotModified):
+                await call.message.edit_reply_markup(
+                    make_keyboard_from_minefield(cells, game_id, game_data["current_mode"])
+                )
     await call.answer()
 
 
@@ -143,9 +147,10 @@ async def switch_click_mode(call: types.CallbackQuery, state: FSMContext, callba
     game_data["current_mode"] = int(callback_data["new_mode"])
     await state.update_data(game_data=game_data)
 
-    await call.message.edit_reply_markup(
-        make_keyboard_from_minefield(cells, game_id, game_data["current_mode"])
-    )
+    with suppress(MessageNotModified):
+        await call.message.edit_reply_markup(
+            make_keyboard_from_minefield(cells, game_id, game_data["current_mode"])
+        )
     await call.answer()
 
 
@@ -166,24 +171,27 @@ async def add_or_remove_flag(call: types.CallbackQuery, state: FSMContext,
     if action == "remove":
         cells[flag_x][flag_y].update(mask=CellMask.HIDDEN)
         await state.update_data(game_data=game_data)
-        await call.message.edit_reply_markup(
-            make_keyboard_from_minefield(cells, game_id, game_data["current_mode"])
-        )
+        with suppress(MessageNotModified):
+            await call.message.edit_reply_markup(
+                make_keyboard_from_minefield(cells, game_id, game_data["current_mode"])
+            )
     elif action == "add":
         cells[flag_x][flag_y].update(mask=CellMask.FLAG)
         # See callback_open_square() for explanation
         if untouched_cells_count(cells) == 0:
             if all_flags_match_bombs(cells):
-                await call.message.edit_text(
-                    call.message.html_text + f"\n\n{make_text_table(cells)}\n\nYou won! 🎉",
-                    reply_markup=None
-                )
+                with suppress(MessageNotModified):
+                    await call.message.edit_text(
+                        call.message.html_text + f"\n\n{make_text_table(cells)}\n\nYou won! 🎉",
+                        reply_markup=None
+                    )
                 await log_game(session, fsm_data, call.from_user.id, "win")
             else:
                 await state.update_data(game_data=game_data)
-                await call.message.edit_reply_markup(
-                    make_keyboard_from_minefield(cells, game_id, game_data["current_mode"])
-                )
+                with suppress(MessageNotModified):
+                    await call.message.edit_reply_markup(
+                        make_keyboard_from_minefield(cells, game_id, game_data["current_mode"])
+                    )
                 await call.answer(
                     show_alert=True,
                     text="Looks like you've placed more flags than there are bombs on field. "
@@ -192,9 +200,10 @@ async def add_or_remove_flag(call: types.CallbackQuery, state: FSMContext,
                 return
         else:
             await state.update_data(game_data=game_data)
-            await call.message.edit_reply_markup(
-                make_keyboard_from_minefield(cells, game_id, game_data["current_mode"])
-            )
+            with suppress(MessageNotModified):
+                await call.message.edit_reply_markup(
+                    make_keyboard_from_minefield(cells, game_id, game_data["current_mode"])
+                )
     await call.answer()
 
 
