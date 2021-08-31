@@ -12,7 +12,7 @@ async def cmd_start(message: types.Message, state: FSMContext):
 
 
 async def cmd_help(message: types.Message):
-    await message.answer("Обработка /help")
+    await message.answer("This is how you play Bombsweeper aka Minesweeper: https://youtu.be/dvvrOeITzG8")
 
 
 def register_default_handlers(dp: Dispatcher):
