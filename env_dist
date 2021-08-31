@@ -10,3 +10,9 @@ DB_PASS=s3cr3t
 REDIS_HOST=redis
 # docker image
 IMAGE=latest
+# webhooks
+WEBHOOK_ENABLED=1
+WEBHOOK_DOMAIN=bombsweeper.example.com
+WEBHOOK_PATH=/extra/path/from/root
+APP_HOST=0.0.0.0
+APP_PORT=9000

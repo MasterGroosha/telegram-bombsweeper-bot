@@ -1,8 +1,9 @@
 import asyncio
 import logging
-from os.path import join
 
+from aiohttp import web
 from aiogram import Bot, Dispatcher
+from aiogram.dispatcher.webhook import configure_app
 from aiogram.types import BotCommand, BotCommandScopeChat, BotCommandScopeDefault
 from aiogram.contrib.fsm_storage.redis import RedisStorage2
 from sqlalchemy.orm import sessionmaker
@@ -69,14 +70,36 @@ async def main():
 
     logger.info("Starting bot")
 
-    # Starting polling
-    # await dp.skip_updates()  # uncomment to skip pending updates (optional)
-    try:
-        await dp.start_polling(allowed_updates=get_handled_updates_list(dp))
-    finally:
-        await dp.storage.close()
-        await dp.storage.wait_closed()
-        await bot.session.close()
+    # Starting polling or webhooks
+    # To skip pending updates, either use `await dp.skip_updates()` for polling
+    # or `drop_pending_updates=True` argument for set_webhook
+    if config.app.webhook_enabled:
+        app = web.Application()
+        configure_app(dp, app, config.app.webhook_path)
+        runner = web.AppRunner(app, access_log=None)
+        await runner.setup()
+        await bot.set_webhook(f"https://{config.app.webhook_domain}{config.app.webhook_path}",
+                              allowed_updates=get_handled_updates_list(dp))
+        site = web.TCPSite(runner, config.app.host, config.app.port)
+        print("Starting webhook")
+        try:
+            await site.start()
+            while True:
+                await asyncio.sleep(3600)  # This is required to keep webserver on
+        finally:
+            await dp.storage.close()
+            await dp.storage.wait_closed()
+            await bot.session.close()
+            await runner.cleanup()
+    else:
+        try:
+            print("Starting polling")
+            await dp.reset_webhook()
+            await dp.start_polling(allowed_updates=get_handled_updates_list(dp))
+        finally:
+            await dp.storage.close()
+            await dp.storage.wait_closed()
+            await bot.session.close()
 
 
 asyncio.run(main())
