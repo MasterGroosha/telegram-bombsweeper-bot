@@ -52,7 +52,7 @@ async def check_callback_data(call: types.CallbackQuery, state: FSMContext, call
         return
     elif game_id != callback_data.get("game_id"):
         with suppress(MessageNotModified):
-            await call.message.edit_text("This game is no longer accessible", reply_markup=None)
+            await call.message.edit_text("<i>This game is no longer accessible</i>", reply_markup=None)
         await call.answer(show_alert=True, text="This game is inaccessible, because there is more recent one!")
         return
 
@@ -75,7 +75,7 @@ async def callback_newgame(call: types.CallbackQuery, state: FSMContext):
     newgame_dict = {"game_id": game_id, "game_data": get_newgame_data(size, bombs)}
     await state.set_data(newgame_dict)
     await call.message.edit_text(
-        f"You're currently playing {size}x{size} field, {bombs} bombs",
+        f"You're currently playing <b>{size}×{size}</b> field, <b>{bombs}</b> bombs",
         reply_markup=make_keyboard_from_minefield(newgame_dict["game_data"]["cells"], game_id, ClickMode.CLICK)
     )
     await call.answer()
@@ -99,7 +99,7 @@ async def callback_open_square(call: types.CallbackQuery, state: FSMContext,
         cells[x][y]["mask"] = CellMask.BOMB
         with suppress(MessageNotModified):
             await call.message.edit_text(
-                call.message.html_text + f"\n\n{make_text_table(cells)}\n\nYou lost :(",
+                call.message.html_text + f"\n\n{make_text_table(cells)}\n\n<b>You lost</b> 😞",
                 reply_markup=None
             )
         await log_game(session, fsm_data, call.from_user.id, "lose")
@@ -112,7 +112,7 @@ async def callback_open_square(call: types.CallbackQuery, state: FSMContext,
             if all_flags_match_bombs(cells):
                 with suppress(MessageNotModified):
                     await call.message.edit_text(
-                        call.message.html_text + f"\n\n{make_text_table(cells)}\n\nYou won! 🎉",
+                        call.message.html_text + f"\n\n{make_text_table(cells)}\n\n<b>You won!</b> 🎉",
                         reply_markup=None
                     )
                 await log_game(session, fsm_data, call.from_user.id, "win")
@@ -184,7 +184,7 @@ async def add_or_remove_flag(call: types.CallbackQuery, state: FSMContext,
             if all_flags_match_bombs(cells):
                 with suppress(MessageNotModified):
                     await call.message.edit_text(
-                        call.message.html_text + f"\n\n{make_text_table(cells)}\n\nYou won! 🎉",
+                        call.message.html_text + f"\n\n{make_text_table(cells)}\n\n<b>You won!</b> 🎉",
                         reply_markup=None
                     )
                 await log_game(session, fsm_data, call.from_user.id, "win")
