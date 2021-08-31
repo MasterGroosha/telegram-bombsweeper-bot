@@ -13,6 +13,7 @@ from bot.middlewares.db import DbSessionMiddleware
 from bot.db.utils import make_connection_string
 from bot.handlers.default_commands import register_default_handlers
 from bot.handlers.callbacks import register_callbacks
+from bot.updatesworker import get_handled_updates_list
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +74,7 @@ async def main():
     # Starting polling
     # await dp.skip_updates()  # uncomment to skip pending updates (optional)
     try:
-        await dp.start_polling()
+        await dp.start_polling(allowed_updates=get_handled_updates_list(dp))
     finally:
         await dp.storage.close()
         await dp.storage.wait_closed()
