@@ -18,21 +18,19 @@ from bot.updatesworker import get_handled_updates_list
 logger = logging.getLogger(__name__)
 
 
-# async def set_bot_commands(bot: Bot):
-#     data = [
-#         (
-#             [BotCommand(command="help", description="help только для @Groosha")],
-#             BotCommandScopeChat(chat_id=1795872),
-#             None
-#         ),
-#         (
-#             [BotCommand(command="help", description="help для всех")],
-#             BotCommandScopeDefault(),
-#             None
-#         ),
-#     ]
-#     for commands_list, commands_scope, language in data:
-#         await bot.set_my_commands(commands=commands_list, scope=commands_scope, language_code=language)
+async def set_bot_commands(bot: Bot):
+    data = [
+        (
+            [
+                BotCommand(command="start", description="New Game"),
+                BotCommand(command="help", description="How to play Bombsweeper?")
+            ],
+            BotCommandScopeDefault(),
+            None
+        )
+    ]
+    for commands_list, commands_scope, language in data:
+        await bot.set_my_commands(commands=commands_list, scope=commands_scope, language_code=language)
 
 
 async def main():
@@ -67,7 +65,7 @@ async def main():
     dp.middleware.setup(DbSessionMiddleware(db_pool))
 
     # Register /-commands in UI
-    # await set_bot_commands(bot)
+    await set_bot_commands(bot)
 
     logger.info("Starting bot")
 
