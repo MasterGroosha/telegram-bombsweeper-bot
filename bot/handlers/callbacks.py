@@ -215,7 +215,7 @@ async def callback_ignore(call: types.CallbackQuery):
     Called when player clicks on an open number.
     In this case, we simply ignore this callback.
     """
-    await call.answer()
+    await call.answer(cache_time=3)
 
 
 def register_callbacks(dp: Dispatcher):
