@@ -127,6 +127,7 @@ async def callback_open_square(call: types.CallbackQuery, state: FSMContext,
                     show_alert=True,
                     text="Looks like you've placed more flags than there are bombs on field. Please check them again."
                 )
+                return
         # If this is not the last cell to open
         else:
             await state.update_data(game_data=game_data)
