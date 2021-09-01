@@ -2,7 +2,7 @@ from typing import List
 
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-from bot.cbdata import cb_switch_mode, cb_click, cb_switch_flag
+from bot.cbdata import cb_switch_mode, cb_click, cb_switch_flag, cb_ignore
 from bot.minesweeper.states import ClickMode, CellMask
 
 
@@ -11,21 +11,22 @@ def make_keyboard_from_minefield(cells: List[List], game_id: str, click_mode: st
     for cells_row in cells:
         kb_row = []
         for cell in cells_row:
-            # This is a button for OPEN status
-            btn = InlineKeyboardButton(text=cell["value"], callback_data="ignore")
             mask_value = cell["mask"]
             x = cell["x"]
             y = cell["y"]
-            # Check other statuses
+            # Check statuses
             if mask_value == CellMask.HIDDEN:
-                btn.text = "•"
+                btn = InlineKeyboardButton(text="•")
                 if click_mode == ClickMode.CLICK:
                     btn.callback_data = cb_click.new(game_id=game_id, x=x, y=y)
                 else:
                     btn.callback_data = cb_switch_flag.new(game_id=game_id, action="add", x=x, y=y)
             elif mask_value == CellMask.FLAG:
-                btn.text = "🚩"
-                btn.callback_data = cb_switch_flag.new(game_id=game_id, action="remove", x=x, y=y)
+                btn = InlineKeyboardButton(
+                    text="🚩", callback_data=cb_switch_flag.new(game_id=game_id, action="remove", x=x, y=y)
+                )
+            else:  # mask_value == CellMask.OPEN
+                btn = InlineKeyboardButton(text=cell["value"], callback_data=cb_ignore.new(x=x, y=y))
             kb_row.append(btn)
         keyboard.row(*kb_row)
 

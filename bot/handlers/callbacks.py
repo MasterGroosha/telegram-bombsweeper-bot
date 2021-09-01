@@ -12,7 +12,7 @@ from sqlalchemy.exc import IntegrityError
 from bot.minesweeper.game import get_newgame_data, untouched_cells_count, all_flags_match_bombs, make_text_table
 from bot.minesweeper.states import ClickMode, CellMask
 from bot.keyboards.kb_minefield import make_keyboard_from_minefield
-from bot.cbdata import cb_click, cb_switch_mode, cb_switch_flag
+from bot.cbdata import cb_click, cb_switch_mode, cb_switch_flag, cb_ignore
 from bot.db.models import GameHistoryEntry
 
 
@@ -220,7 +220,7 @@ async def callback_ignore(call: types.CallbackQuery):
 
 def register_callbacks(dp: Dispatcher):
     dp.register_callback_query_handler(callback_newgame, text="newgame")
-    dp.register_callback_query_handler(callback_ignore, text="ignore")
+    dp.register_callback_query_handler(callback_ignore, cb_ignore.filter())
     dp.register_callback_query_handler(check_callback_data, cb_click.filter())
     dp.register_callback_query_handler(check_callback_data, cb_switch_flag.filter())
     dp.register_callback_query_handler(check_callback_data, cb_switch_mode.filter())
