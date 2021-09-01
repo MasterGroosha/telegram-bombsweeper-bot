@@ -1,5 +1,8 @@
 # Bombsweeper Bot
 
+<a href="https://hub.docker.com/r/groosha/telegram-bombsweeper-bot"><img src="https://img.shields.io/badge/Docker%20Hub-telegram--bombsweeper--bot-blue"></a> 
+<a href="https://t.me/bombsweeperbot"><img src="https://img.shields.io/badge/Telegram-💣%20@bombsweeperbot-black"></a>  
+
 This is simple minesweeper-like Telegram game. 
 You need to open all "free" squares and put flags on squares 
 with bombs on them. If you open a cell with a bomb, the game is over.
