@@ -23,9 +23,6 @@ def make_keyboard_from_minefield(cells: List[List], game_id: str, click_mode: st
                     btn.callback_data = cb_click.new(game_id=game_id, x=x, y=y)
                 else:
                     btn.callback_data = cb_switch_flag.new(game_id=game_id, action="add", x=x, y=y)
-            # todo: remove BOMB button and replace with in-text field
-            elif mask_value == CellMask.BOMB:
-                btn.text = "💥"
             elif mask_value == CellMask.FLAG:
                 btn.text = "🚩"
                 btn.callback_data = cb_switch_flag.new(game_id=game_id, action="remove", x=x, y=y)
