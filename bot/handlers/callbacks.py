@@ -50,8 +50,7 @@ async def check_callback_data(call: types.CallbackQuery, state: FSMContext, call
         await call.answer()
         return
     elif game_id != callback_data.get("game_id"):
-        with suppress(MessageNotModified):
-            await call.message.edit_text("<i>This game is no longer accessible</i>", reply_markup=None)
+        await call.message.edit_text("<i>This game is no longer accessible</i>", reply_markup=None)
         await call.answer(show_alert=True, text="This game is inaccessible, because there is more recent one!")
         return
 
@@ -87,7 +86,6 @@ async def callback_open_square(call: types.CallbackQuery, state: FSMContext,
     fsm_data = await state.get_data()
     game_id = fsm_data.get("game_id")
     game_data = fsm_data.get("game_data", {})
-    cells = game_data.get("cells")
 
     x = int(callback_data["x"])
     y = int(callback_data["y"])
