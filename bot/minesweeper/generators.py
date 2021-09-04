@@ -3,7 +3,7 @@ from typing import List, Tuple
 from random import randint
 
 
-def __generate_square_field(k: int) -> List[List]:
+def generate_square_field(k: int) -> List[List]:
     result = []
     for i in range(k):
         result.append([0] * k)
@@ -75,7 +75,7 @@ def generate_custom(size: int, bombs: int) -> List[List]:
     :param bombs: bombs count for this field
     :return: an array of arrays of cells.
     """
-    field = __generate_square_field(size)
+    field = generate_square_field(size)
     current_count = 0
 
     while current_count < bombs:
