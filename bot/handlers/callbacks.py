@@ -43,7 +43,6 @@ async def check_callback_data(call: types.CallbackQuery, state: FSMContext, call
     This is a "middleware" function, which does some checks to prevent duplicating code and breaking the logic
     """
     fsm_data = await state.get_data()
-    game_data = fsm_data.get("game_data", {})
     game_id = fsm_data.get("game_id")
 
     if game_id is None:
