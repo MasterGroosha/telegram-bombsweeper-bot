@@ -1,12 +1,12 @@
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 from texttable import Texttable
 
-from bot.minesweeper.generators import generate_custom
+from bot.minesweeper.generators import generate_custom, generate_square_field
 from bot.minesweeper.states import CellMask, ClickMode
 
 
-def get_newgame_data(size: int, bombs: int) -> Dict:
+def get_fake_newgame_data(size: int, bombs: int) -> Dict:
     """
     Prepares a new game dictionary
 
@@ -14,13 +14,21 @@ def get_newgame_data(size: int, bombs: int) -> Dict:
     :param bombs: number of bombs to place
     :return: a dictionary with field data for a new game
     """
-    result = {"current_mode": ClickMode.CLICK, "size": size, "bombs": bombs}
-    field = generate_custom(size, bombs)
+    result = {"current_mode": ClickMode.CLICK, "size": size, "bombs": bombs, "initial": True}
+    field = generate_square_field(size)
     for x in range(size):
         for y in range(size):
-            field[x][y] = {"value": field[x][y], "mask": 0, "x": x, "y": y}
+            field[x][y] = {"value": field[x][y], "mask": CellMask.HIDDEN, "x": x, "y": y}
     result["cells"] = field
     return result
+
+
+def get_real_game_data(size: int, bombs: int, predefined: Tuple[int, int]) -> List[List[Dict]]:
+    field = generate_custom(size, bombs, predefined)
+    for x in range(size):
+        for y in range(size):
+            field[x][y] = {"value": field[x][y], "mask": CellMask.HIDDEN, "x": x, "y": y}
+    return field
 
 
 def untouched_cells_count(cells: List[List[Dict]]) -> int:

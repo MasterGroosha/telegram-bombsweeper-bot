@@ -9,7 +9,8 @@ from aiogram.utils.exceptions import MessageNotModified
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 
-from bot.minesweeper.game import get_newgame_data, untouched_cells_count, all_flags_match_bombs, make_text_table
+from bot.minesweeper.game import (get_fake_newgame_data, untouched_cells_count, all_flags_match_bombs,
+                                  make_text_table, get_real_game_data)
 from bot.minesweeper.states import ClickMode, CellMask
 from bot.keyboards.kb_minefield import make_keyboard_from_minefield
 from bot.cbdata import cb_newgame, cb_click, cb_switch_mode, cb_switch_flag, cb_ignore
@@ -69,7 +70,7 @@ async def callback_newgame(call: types.CallbackQuery, state: FSMContext, callbac
     bombs = int(callback_data.get("bombs"))
 
     game_id = str(uuid4())
-    newgame_dict = {"game_id": game_id, "game_data": get_newgame_data(size, bombs)}
+    newgame_dict = {"game_id": game_id, "game_data": get_fake_newgame_data(size, bombs)}
     await state.set_data(newgame_dict)
     await call.message.edit_text(
         f"You're currently playing <b>{size}×{size}</b> field, <b>{bombs}</b> bombs",
@@ -89,6 +90,14 @@ async def callback_open_square(call: types.CallbackQuery, state: FSMContext,
 
     x = int(callback_data["x"])
     y = int(callback_data["y"])
+
+    # If this is the first click, it's time to generate the real game field
+    if game_data["initial"] is True:
+        cells = get_real_game_data(game_data["size"], game_data["bombs"], (x, y))
+        game_data["cells"] = cells
+        game_data["initial"] = False
+    else:
+        cells = game_data.get("cells")
 
     # This cell contained a bomb
     if cells[x][y]["value"] == "*":
@@ -142,6 +151,10 @@ async def switch_click_mode(call: types.CallbackQuery, state: FSMContext, callba
     game_id = fsm_data.get("game_id")
     game_data = fsm_data.get("game_data", {})
     cells = game_data.get("cells")
+
+    if game_data["initial"] is True:
+        await call.answer(show_alert=True, text="You can only place flags after first click!")
+        return
 
     game_data["current_mode"] = int(callback_data["new_mode"])
     await state.update_data(game_data=game_data)

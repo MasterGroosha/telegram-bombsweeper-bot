@@ -65,7 +65,7 @@ def __find_neighbours(x: int, y: int, size: int) -> List[Tuple]:
     return result
 
 
-def generate_custom(size: int, bombs: int) -> List[List]:
+def generate_custom(size: int, bombs: int, predefined: Tuple[int, int]) -> List[List]:
     """
     Generates custom square field with bombs (*).
     If cell contains a bomb, it has "*" value.
@@ -73,6 +73,7 @@ def generate_custom(size: int, bombs: int) -> List[List]:
 
     :param size: a single dimension of a field
     :param bombs: bombs count for this field
+    :param predefined: coordinates of cell, which MUST be free of bombs
     :return: an array of arrays of cells.
     """
     field = generate_square_field(size)
@@ -82,7 +83,8 @@ def generate_custom(size: int, bombs: int) -> List[List]:
         x = randint(0, size-1)
         y = randint(0, size-1)
 
-        if field[x][y] == "*":
+        # Do not place a bomb on another bomb or on predefined place
+        if (x == predefined[0] and y == predefined[1]) or field[x][y] == "*":
             continue
         field[x][y] = "*"
         neighbours = __find_neighbours(x, y, size)
