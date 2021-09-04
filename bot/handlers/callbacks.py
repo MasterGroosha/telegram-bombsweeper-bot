@@ -47,7 +47,7 @@ async def check_callback_data(call: types.CallbackQuery, state: FSMContext, call
     game_id = fsm_data.get("game_id")
 
     if game_id is None:
-        await call.message.edit_text("Something went wrong with this game, so it was removed.", reply_markup=None)
+        await call.message.edit_text("<i>This game is no longer accessible</i>", reply_markup=None)
         await call.answer()
         return
     elif game_id != callback_data.get("game_id"):
