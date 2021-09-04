@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 
 from bot.minesweeper.game import (get_fake_newgame_data, untouched_cells_count, all_flags_match_bombs,
-                                  make_text_table, get_real_game_data)
+                                  all_free_cells_are_open, make_text_table, get_real_game_data)
 from bot.minesweeper.states import ClickMode, CellMask
 from bot.keyboards.kb_minefield import make_keyboard_from_minefield
 from bot.cbdata import cb_newgame, cb_click, cb_switch_mode, cb_switch_flag, cb_ignore
@@ -111,28 +111,27 @@ async def callback_open_square(call: types.CallbackQuery, state: FSMContext,
     # This cell contained a number
     else:
         cells[x][y]["mask"] = CellMask.OPEN
-        # If this is the last cell to open...
-        if untouched_cells_count(cells) == 0:
-            # ...and all flags stand on bombs
-            if all_flags_match_bombs(cells):
-                with suppress(MessageNotModified):
-                    await call.message.edit_text(
-                        call.message.html_text + f"\n\n{make_text_table(cells)}\n\n<b>You won!</b> 🎉",
-                        reply_markup=None
-                    )
-                await log_game(session, fsm_data, call.from_user.id, "win")
-            # ...or some flags stand on numbers
-            else:
-                await state.update_data(game_data=game_data)
-                with suppress(MessageNotModified):
-                    await call.message.edit_reply_markup(
-                        make_keyboard_from_minefield(cells, game_id, game_data["current_mode"])
-                    )
-                await call.answer(
-                    show_alert=True,
-                    text="Looks like you've placed more flags than there are bombs on field. Please check them again."
+        if all_free_cells_are_open(cells):
+            with suppress(MessageNotModified):
+                await call.message.edit_text(
+                    call.message.html_text + f"\n\n{make_text_table(cells)}\n\n<b>You won!</b> 🎉",
+                    reply_markup=None
                 )
-                return
+            await log_game(session, fsm_data, call.from_user.id, "win")
+            await call.answer()
+            return
+        # There are more flags than there should be
+        elif untouched_cells_count(cells) == 0 and not all_flags_match_bombs(cells):
+            await state.update_data(game_data=game_data)
+            with suppress(MessageNotModified):
+                await call.message.edit_reply_markup(
+                    make_keyboard_from_minefield(cells, game_id, game_data["current_mode"])
+                )
+            await call.answer(
+                show_alert=True,
+                text="Looks like you've placed more flags than there are bombs on field. Please check them again."
+            )
+            return
         # If this is not the last cell to open
         else:
             await state.update_data(game_data=game_data)

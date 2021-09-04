@@ -61,6 +61,21 @@ def all_flags_match_bombs(cells: List[List[Dict]]) -> bool:
     return True
 
 
+def all_free_cells_are_open(cells: List[List[Dict]]) -> bool:
+    """
+    Checks whether all non-bombs cells are open
+
+    :param cells: array of array of cells dicts
+    :return: True if all non-bombs cells are in OPEN state
+    """
+    hidden_cells_count = 0
+    for row in cells:
+        for cell in row:
+            if cell["mask"] != CellMask.OPEN and cell["value"] != "*":
+                hidden_cells_count += 1
+    return hidden_cells_count == 0
+
+
 def make_text_table(cells: List[List[Dict]]) -> str:
     """
     Makes a text representation of game field using texttable library
