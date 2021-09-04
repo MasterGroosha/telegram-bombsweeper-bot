@@ -1,14 +1,12 @@
 from aiogram import Dispatcher, types
 from aiogram.dispatcher import FSMContext
+from bot.keyboards.kb_newgame import make_newgame_keyboard
 
 
 async def cmd_start(message: types.Message, state: FSMContext):
-    # показ клавиатуры с кнопкой start
-    kb = types.InlineKeyboardMarkup()
-    kb.add(types.InlineKeyboardButton(text="Start Game!", callback_data="newgame"))
-    await message.answer("Press the button below to start a new game (previous one will be dismissed).\n"
-                         "For now you cannot choose any options, so a 5x5 field will be used",
-                         reply_markup=kb)
+    await message.answer("Press a button below to start a new game (previous one will be dismissed)\n"
+                         "Note: 6×6 and 7×7 fields look best on bigger screens or Desktop apps.",
+                         reply_markup=make_newgame_keyboard())
 
 
 async def cmd_help(message: types.Message):

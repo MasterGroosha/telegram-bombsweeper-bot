@@ -85,7 +85,7 @@ def generate_custom(size: int, bombs: int) -> List[List]:
         if field[x][y] == "*":
             continue
         field[x][y] = "*"
-        neighbours = __find_neighbours(x, y, 5)
+        neighbours = __find_neighbours(x, y, size)
         for nx, ny in neighbours:
             if field[nx][ny] != "*":
                 field[nx][ny] += 1

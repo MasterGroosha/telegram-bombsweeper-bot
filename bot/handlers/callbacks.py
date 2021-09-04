@@ -12,7 +12,7 @@ from sqlalchemy.exc import IntegrityError
 from bot.minesweeper.game import get_newgame_data, untouched_cells_count, all_flags_match_bombs, make_text_table
 from bot.minesweeper.states import ClickMode, CellMask
 from bot.keyboards.kb_minefield import make_keyboard_from_minefield
-from bot.cbdata import cb_click, cb_switch_mode, cb_switch_flag, cb_ignore
+from bot.cbdata import cb_newgame, cb_click, cb_switch_mode, cb_switch_flag, cb_ignore
 from bot.db.models import GameHistoryEntry
 
 
@@ -66,10 +66,9 @@ async def check_callback_data(call: types.CallbackQuery, state: FSMContext, call
         await switch_click_mode(call, state, callback_data)
 
 
-async def callback_newgame(call: types.CallbackQuery, state: FSMContext):
-    # todo: add separate buttons for different fields (e.g. 5x5, 6x6 and 7x7)
-    size = 5
-    bombs = 3
+async def callback_newgame(call: types.CallbackQuery, state: FSMContext, callback_data: Dict):
+    size = int(callback_data.get("size"))
+    bombs = int(callback_data.get("bombs"))
 
     game_id = str(uuid4())
     newgame_dict = {"game_id": game_id, "game_data": get_newgame_data(size, bombs)}
@@ -219,7 +218,7 @@ async def callback_ignore(call: types.CallbackQuery):
 
 
 def register_callbacks(dp: Dispatcher):
-    dp.register_callback_query_handler(callback_newgame, text="newgame")
+    dp.register_callback_query_handler(callback_newgame, cb_newgame.filter())
     dp.register_callback_query_handler(callback_ignore, cb_ignore.filter())
     dp.register_callback_query_handler(check_callback_data, cb_click.filter())
     dp.register_callback_query_handler(check_callback_data, cb_switch_flag.filter())
