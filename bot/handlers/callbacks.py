@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 
 from bot.minesweeper.game import (get_fake_newgame_data, untouched_cells_count, all_flags_match_bombs,
-                                  all_free_cells_are_open, make_text_table, get_real_game_data)
+                                  all_free_cells_are_open, make_text_table, get_real_game_data, gather_open_cells)
 from bot.minesweeper.states import ClickMode, CellMask
 from bot.keyboards.kb_minefield import make_keyboard_from_minefield
 from bot.cbdata import cb_newgame, cb_click, cb_switch_mode, cb_switch_flag, cb_ignore
@@ -110,7 +110,14 @@ async def callback_open_square(call: types.CallbackQuery, state: FSMContext,
         await log_game(session, fsm_data, call.from_user.id, "lose")
     # This cell contained a number
     else:
-        cells[x][y]["mask"] = CellMask.OPEN
+        # If cell is empty (0), open all adjacent squares
+        if cells[x][y]["value"] == 0:
+            for item in gather_open_cells(cells, (x, y)):
+                cells[item[0]][item[1]]["mask"] = CellMask.OPEN
+        # ... or just the current one
+        else:
+            cells[x][y]["mask"] = CellMask.OPEN
+
         if all_free_cells_are_open(cells):
             with suppress(MessageNotModified):
                 await call.message.edit_text(
