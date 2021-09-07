@@ -69,14 +69,19 @@ async def check_callback_data(call: types.CallbackQuery, state: FSMContext, call
 async def callback_newgame(call: types.CallbackQuery, state: FSMContext, callback_data: Dict):
     size = int(callback_data.get("size"))
     bombs = int(callback_data.get("bombs"))
+    as_separate = callback_data.get("as_separate", "no") == "yes"
 
     game_id = str(uuid4())
     newgame_dict = {"game_id": game_id, "game_data": get_fake_newgame_data(size, bombs)}
     await state.set_data(newgame_dict)
-    await call.message.edit_text(
-        f"You're currently playing <b>{size}×{size}</b> field, <b>{bombs}</b> bombs",
-        reply_markup=make_keyboard_from_minefield(newgame_dict["game_data"]["cells"], game_id, ClickMode.CLICK)
-    )
+
+    text = f"You're currently playing <b>{size}×{size}</b> field, <b>{bombs}</b> bombs"
+    kb = make_keyboard_from_minefield(newgame_dict["game_data"]["cells"], game_id, ClickMode.CLICK)
+    if as_separate:
+        await call.message.delete_reply_markup()
+        await call.message.answer(text, reply_markup=kb)
+    else:
+        await call.message.edit_text(text, reply_markup=kb)
     await call.answer()
 
 
@@ -88,6 +93,8 @@ async def callback_open_square(call: types.CallbackQuery, state: FSMContext,
     fsm_data = await state.get_data()
     game_id = fsm_data.get("game_id")
     game_data = fsm_data.get("game_data", {})
+    field_size = int(game_data.get("size"))
+    bombs = int(game_data.get("bombs"))
 
     x = int(callback_data["x"])
     y = int(callback_data["y"])
@@ -106,7 +113,7 @@ async def callback_open_square(call: types.CallbackQuery, state: FSMContext,
         with suppress(MessageNotModified):
             await call.message.edit_text(
                 call.message.html_text + f"\n\n{make_text_table(cells)}\n\n<b>You lost</b> 😞",
-                reply_markup=make_replay_keyboard()
+                reply_markup=make_replay_keyboard(field_size, bombs)
             )
         await log_game(session, fsm_data, call.from_user.id, "lose")
     # This cell contained a number
@@ -123,7 +130,7 @@ async def callback_open_square(call: types.CallbackQuery, state: FSMContext,
             with suppress(MessageNotModified):
                 await call.message.edit_text(
                     call.message.html_text + f"\n\n{make_text_table(cells)}\n\n<b>You won!</b> 🎉",
-                    reply_markup=make_replay_keyboard()
+                    reply_markup=make_replay_keyboard(field_size, bombs)
                 )
             await log_game(session, fsm_data, call.from_user.id, "win")
             await call.answer()
@@ -182,6 +189,8 @@ async def add_or_remove_flag(call: types.CallbackQuery, state: FSMContext,
     game_id = fsm_data.get("game_id")
     game_data = fsm_data.get("game_data", {})
     cells = game_data.get("cells")
+    field_size = int(game_data.get("size"))
+    bombs = int(game_data.get("bombs"))
 
     action = callback_data["action"]
     flag_x = int(callback_data["x"])
@@ -202,7 +211,7 @@ async def add_or_remove_flag(call: types.CallbackQuery, state: FSMContext,
                 with suppress(MessageNotModified):
                     await call.message.edit_text(
                         call.message.html_text + f"\n\n{make_text_table(cells)}\n\n<b>You won!</b> 🎉",
-                        reply_markup=make_replay_keyboard()
+                        reply_markup=make_replay_keyboard(field_size, bombs)
                     )
                 await log_game(session, fsm_data, call.from_user.id, "win")
             else:
