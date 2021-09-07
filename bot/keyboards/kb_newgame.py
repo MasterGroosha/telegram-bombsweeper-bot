@@ -14,3 +14,9 @@ def make_newgame_keyboard() -> InlineKeyboardMarkup:
         ))
 
     return keyboard
+
+
+def make_replay_keyboard() -> InlineKeyboardMarkup:
+    keyboard = InlineKeyboardMarkup()
+    keyboard.add(InlineKeyboardButton(text="New Game", callback_data="choose_newgame"))
+    return keyboard

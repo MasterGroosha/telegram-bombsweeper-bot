@@ -13,6 +13,7 @@ from bot.minesweeper.game import (get_fake_newgame_data, untouched_cells_count, 
                                   all_free_cells_are_open, make_text_table, get_real_game_data, gather_open_cells)
 from bot.minesweeper.states import ClickMode, CellMask
 from bot.keyboards.kb_minefield import make_keyboard_from_minefield
+from bot.keyboards.kb_newgame import make_replay_keyboard
 from bot.cbdata import cb_newgame, cb_click, cb_switch_mode, cb_switch_flag, cb_ignore
 from bot.db.models import GameHistoryEntry
 
@@ -105,7 +106,7 @@ async def callback_open_square(call: types.CallbackQuery, state: FSMContext,
         with suppress(MessageNotModified):
             await call.message.edit_text(
                 call.message.html_text + f"\n\n{make_text_table(cells)}\n\n<b>You lost</b> 😞",
-                reply_markup=None
+                reply_markup=make_replay_keyboard()
             )
         await log_game(session, fsm_data, call.from_user.id, "lose")
     # This cell contained a number
@@ -122,7 +123,7 @@ async def callback_open_square(call: types.CallbackQuery, state: FSMContext,
             with suppress(MessageNotModified):
                 await call.message.edit_text(
                     call.message.html_text + f"\n\n{make_text_table(cells)}\n\n<b>You won!</b> 🎉",
-                    reply_markup=None
+                    reply_markup=make_replay_keyboard()
                 )
             await log_game(session, fsm_data, call.from_user.id, "win")
             await call.answer()
@@ -201,7 +202,7 @@ async def add_or_remove_flag(call: types.CallbackQuery, state: FSMContext,
                 with suppress(MessageNotModified):
                     await call.message.edit_text(
                         call.message.html_text + f"\n\n{make_text_table(cells)}\n\n<b>You won!</b> 🎉",
-                        reply_markup=None
+                        reply_markup=make_replay_keyboard()
                     )
                 await log_game(session, fsm_data, call.from_user.id, "win")
             else:

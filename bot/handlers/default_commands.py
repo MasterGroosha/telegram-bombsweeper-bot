@@ -1,18 +1,27 @@
-from aiogram import Dispatcher, types
-from aiogram.dispatcher import FSMContext
+from aiogram import Dispatcher
+from aiogram.types import Message, CallbackQuery
 from bot.keyboards.kb_newgame import make_newgame_keyboard
 
 
-async def cmd_start(message: types.Message, state: FSMContext):
+async def show_newgame_cb(call: CallbackQuery):
+    await call.message.answer("Press a button below to start a new game (previous one will be dismissed)\n"
+                              "Note: 6×6 and 7×7 fields look best on bigger screens or Desktop apps.",
+                              reply_markup=make_newgame_keyboard())
+    await call.message.delete_reply_markup()
+    await call.answer()
+
+
+async def show_newgame_msg(message: Message):
     await message.answer("Press a button below to start a new game (previous one will be dismissed)\n"
                          "Note: 6×6 and 7×7 fields look best on bigger screens or Desktop apps.",
                          reply_markup=make_newgame_keyboard())
 
 
-async def cmd_help(message: types.Message):
+async def cmd_help(message: Message):
     await message.answer("This is how you play Bombsweeper aka Minesweeper: https://youtu.be/dvvrOeITzG8")
 
 
 def register_default_handlers(dp: Dispatcher):
-    dp.register_message_handler(cmd_start, commands="start")
+    dp.register_message_handler(show_newgame_msg, commands="start")
+    dp.register_callback_query_handler(show_newgame_cb, text="choose_newgame")
     dp.register_message_handler(cmd_help, commands="help")
