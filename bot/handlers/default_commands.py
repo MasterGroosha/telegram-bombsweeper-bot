@@ -13,12 +13,14 @@ async def show_newgame_cb(call: CallbackQuery):
 
 async def show_newgame_msg(message: Message):
     await message.answer("Press a button below to start a new game (previous one will be dismissed)\n"
-                         "Note: 6×6 and 7×7 fields look best on bigger screens or Desktop apps.",
+                         "Note: 6×6 and 7×7 fields look best on bigger screens or Desktop apps.\n\n"
+                         "Press /help if you're unsure how to play Bombsweeper.",
                          reply_markup=make_newgame_keyboard())
 
 
 async def cmd_help(message: Message):
-    await message.answer("This is how you play Bombsweeper aka Minesweeper: https://youtu.be/dvvrOeITzG8")
+    await message.answer("A quick guide how to play Bombsweeper is available here: "
+                         "https://telegra.ph/bombsweeper-how-to-play-09-08")
 
 
 def register_default_handlers(dp: Dispatcher):
