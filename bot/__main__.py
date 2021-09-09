@@ -13,6 +13,7 @@ from bot.config_reader import load_config
 from bot.middlewares.db import DbSessionMiddleware
 from bot.db.utils import make_connection_string
 from bot.handlers.default_commands import register_default_handlers
+from bot.handlers.statistics import register_statistics_handlers
 from bot.handlers.callbacks import register_callbacks
 from bot.updatesworker import get_handled_updates_list
 
@@ -24,7 +25,8 @@ async def set_bot_commands(bot: Bot):
         (
             [
                 BotCommand(command="start", description="New Game"),
-                BotCommand(command="help", description="How to play Bombsweeper?")
+                BotCommand(command="help", description="How to play Bombsweeper?"),
+                BotCommand(command="stats", description="Your personal statistics")
             ],
             BotCommandScopeDefault(),
             None
@@ -60,6 +62,7 @@ async def main():
 
     # Register handlers
     register_default_handlers(dp)
+    register_statistics_handlers(dp)
     register_callbacks(dp)
 
     # Register middlewares
