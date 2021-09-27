@@ -38,6 +38,7 @@ services:
         depends_on:
             - db
             - db_migration
+            - redis
 
 
 volumes:
@@ -52,7 +53,7 @@ volumes:
         driver_opts:
             type: 'none'
             o: 'bind'
-            device: ./redis-config'
+            device: './redis-config'
     redis_data:
         driver: local
         driver_opts:
