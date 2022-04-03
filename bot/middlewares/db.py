@@ -1,18 +1,20 @@
-from aiogram.dispatcher.middlewares import LifetimeControllerMiddleware
+from typing import Callable, Awaitable, Dict, Any
+
+from aiogram import BaseMiddleware
+from aiogram.types import TelegramObject
 
 
-class DbSessionMiddleware(LifetimeControllerMiddleware):
-    skip_patterns = ["error", "update"]
-
+class DbSessionMiddleware(BaseMiddleware):
     def __init__(self, session_pool):
         super().__init__()
         self.session_pool = session_pool
 
-    async def pre_process(self, obj, data, *args):
-        session = self.session_pool()
-        data["session"] = session
-
-    async def post_process(self, obj, data, *args):
-        session = data.get("session")
-        if session:
-            await session.close()
+    async def __call__(
+            self,
+            handler: Callable[[TelegramObject, Dict[str, Any]], Awaitable[Any]],
+            event: TelegramObject,
+            data: Dict[str, Any],
+    ) -> Any:
+        async with self.session_pool() as session:
+            data["session"] = session
+            return await handler(event, data)

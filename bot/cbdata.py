@@ -1,7 +1,32 @@
-from aiogram.utils.callback_data import CallbackData
+from aiogram.dispatcher.filters.callback_data import CallbackData
 
-cb_newgame = CallbackData("newgame", "size", "bombs", "as_separate")
-cb_click = CallbackData("press", "game_id", "x", "y")
-cb_switch_flag = CallbackData("flag", "game_id", "action", "x", "y")
-cb_switch_mode = CallbackData("switchmode", "game_id", "new_mode")
-cb_ignore = CallbackData("ignore", "x", "y")
+from bot.minesweeper.states import ClickMode
+
+
+class NewGameCallbackFactory(CallbackData, prefix="newgame"):
+    size: int
+    bombs: int
+    as_separate: bool
+
+
+class ClickCallbackFactory(CallbackData, prefix="press"):
+    game_id: str
+    x: int
+    y: int
+
+
+class SwitchFlagCallbackFactory(CallbackData, prefix="flag"):
+    game_id: str
+    action: str
+    x: int
+    y: int
+
+
+class SwitchModeCallbackFactory(CallbackData, prefix="switchmode"):
+    game_id: str
+    new_mode: int
+
+
+class IgnoreCallbackFactory(CallbackData, prefix="ignore"):
+    x: int
+    y: int

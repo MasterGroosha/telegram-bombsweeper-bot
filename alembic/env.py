@@ -20,14 +20,11 @@ fileConfig(config.config_file_name)
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
 from bot.db.base import metadata
-from bot.db.models import GameHistoryEntry
-from bot.config_reader import load_config, Config
-from bot.db.utils import make_connection_string
+from bot.configreader import config as app_config
 target_metadata = metadata
-bot_config: Config = load_config()
 config.set_main_option(
     'sqlalchemy.url',
-    make_connection_string(bot_config.db, async_fallback=True)
+    app_config.postgres_dsn + "?async_fallback=True"
 )
 
 

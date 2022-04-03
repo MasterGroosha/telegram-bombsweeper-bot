@@ -1,9 +1,10 @@
-aiogram~=2.14.0
-pytest==6.2.4
+aiogram==3.0.0b2
 texttable==1.6.4
 wcwidth==0.2.5
+pydantic==1.9.0
 cjkwrap==2.2
-sqlalchemy~=1.4.0
-alembic==1.6.5
-asyncpg==0.24.0
-aioredis<2
+sqlalchemy==1.4.34
+alembic==1.7.7
+asyncpg==0.25.0
+python-dotenv==0.20.0
+aioredis==2.0.1
