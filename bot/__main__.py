@@ -1,108 +1,89 @@
 import asyncio
 import logging
 
-from aiohttp import web
 from aiogram import Bot, Dispatcher
-from aiogram.dispatcher.webhook import configure_app
-from aiogram.types import BotCommand, BotCommandScopeChat, BotCommandScopeDefault
-from aiogram.contrib.fsm_storage.redis import RedisStorage2
-from sqlalchemy.orm import sessionmaker
+from aiogram.client.telegram import TelegramAPIServer
+from aiogram.dispatcher.fsm.storage.memory import MemoryStorage
+from aiogram.dispatcher.fsm.storage.redis import RedisStorage
+from aiogram.dispatcher.webhook.aiohttp_server import SimpleRequestHandler
+from aiohttp import web
+from magic_filter import F
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
 
-from bot.config_reader import load_config
+from bot.commands import set_commands
+from bot.configreader import config
+from bot.handlers import default_commands, statistics, callbacks
+from bot.middlewares.check_active_game import CheckActiveGameMiddleware
 from bot.middlewares.db import DbSessionMiddleware
-from bot.db.utils import make_connection_string
-from bot.handlers.default_commands import register_default_handlers
-from bot.handlers.statistics import register_statistics_handlers
-from bot.handlers.callbacks import register_callbacks
-from bot.updatesworker import get_handled_updates_list
-
-logger = logging.getLogger(__name__)
-
-
-async def set_bot_commands(bot: Bot):
-    data = [
-        (
-            [
-                BotCommand(command="start", description="New Game"),
-                BotCommand(command="help", description="How to play Bombsweeper?"),
-                BotCommand(command="stats", description="Your personal statistics")
-            ],
-            BotCommandScopeDefault(),
-            None
-        )
-    ]
-    for commands_list, commands_scope, language in data:
-        await bot.set_my_commands(commands=commands_list, scope=commands_scope, language_code=language)
 
 
 async def main():
     # Logging to stdout
     logging.basicConfig(
-        level=logging.INFO,
+        level=logging.WARNING,
         format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
     )
 
-    # Reading config file
-    config = load_config()
-
     # Creating DB engine for PostgreSQL
-    engine = create_async_engine(
-        make_connection_string(config.db),
-        future=True,
-        echo=False
-    )
+    engine = create_async_engine(config.postgres_dsn, future=True, echo=False)
 
     # Creating DB connections pool
     db_pool = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
     # Creating bot and its dispatcher
-    bot = Bot(token=config.tg_bot.token, parse_mode="HTML")
-    dp = Dispatcher(bot, storage=RedisStorage2(config.redis.host))
+    bot = Bot(token=config.bot_token, parse_mode="HTML")
+    if config.custom_bot_api:
+        bot.session.api = TelegramAPIServer.from_base(config.custom_bot_api, is_local=True)
 
-    # Register handlers
-    register_default_handlers(dp)
-    register_statistics_handlers(dp)
-    register_callbacks(dp)
+    # Choosing FSM storage
+    if config.bot_fsm_storage == "memory":
+        dp = Dispatcher(storage=MemoryStorage())
+    else:
+        dp = Dispatcher(storage=RedisStorage.from_url(config.redis_dsn))
+
+    # Allow interaction in private chats (not groups or channels) only
+    dp.message.filter(F.chat.type == "private")
 
     # Register middlewares
-    dp.middleware.setup(DbSessionMiddleware(db_pool))
+    dp.message.middleware(DbSessionMiddleware(db_pool))
+    dp.callback_query.middleware(CheckActiveGameMiddleware())
+    dp.callback_query.middleware(DbSessionMiddleware(db_pool))
+
+    dp.include_router(default_commands.router)
+    dp.include_router(statistics.router)
+    dp.include_router(callbacks.router)
 
     # Register /-commands in UI
-    await set_bot_commands(bot)
+    await set_commands(bot)
 
-    logger.info("Starting bot")
+    try:
+        if not config.webhook_domain:
+            await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
+        else:
+            # Suppress aiohttp access log completely
+            aiohttp_logger = logging.getLogger("aiohttp.access")
+            aiohttp_logger.setLevel(logging.CRITICAL)
 
-    # Starting polling or webhooks
-    # To skip pending updates, either use `await dp.skip_updates()` for polling
-    # or `drop_pending_updates=True` argument for set_webhook
-    if config.app.webhook_enabled:
-        app = web.Application()
-        configure_app(dp, app, config.app.webhook_path)
-        runner = web.AppRunner(app, access_log=None)
-        await runner.setup()
-        await bot.set_webhook(f"https://{config.app.webhook_domain}{config.app.webhook_path}",
-                              allowed_updates=get_handled_updates_list(dp))
-        site = web.TCPSite(runner, config.app.host, config.app.port)
-        print("Starting webhook")
-        try:
+            # Setting webhook
+            await bot.set_webhook(
+                url=config.webhook_domain + config.webhook_path,
+                drop_pending_updates=True,
+                allowed_updates=dp.resolve_used_update_types()
+            )
+
+            # Creating an aiohttp application
+            app = web.Application()
+            SimpleRequestHandler(dispatcher=dp, bot=bot).register(app, path=config.webhook_path)
+            runner = web.AppRunner(app)
+            await runner.setup()
+            site = web.TCPSite(runner, host=config.app_host, port=config.app_port)
             await site.start()
-            while True:
-                await asyncio.sleep(3600)  # This is required to keep webserver on
-        finally:
-            await dp.storage.close()
-            await dp.storage.wait_closed()
-            await bot.session.close()
-            await runner.cleanup()
-    else:
-        try:
-            print("Starting polling")
-            await dp.reset_webhook()
-            await dp.start_polling(allowed_updates=get_handled_updates_list(dp))
-        finally:
-            await dp.storage.close()
-            await dp.storage.wait_closed()
-            await bot.session.close()
+
+            # Running it forever
+            await asyncio.Event().wait()
+    finally:
+        await bot.session.close()
 
 
 asyncio.run(main())
