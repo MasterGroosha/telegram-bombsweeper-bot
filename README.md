@@ -7,6 +7,8 @@ This is simple minesweeper-like Telegram game.
 You need to open all "free" squares and put flags on squares 
 with bombs on them. If you open a cell with a bomb, the game is over.
 
+![screenshot](screenshot.png)
+
 ## Used technology
 * Python (tested with 3.9, should work on 3.7+);
 * aiogram (Telegram Bot framework);
