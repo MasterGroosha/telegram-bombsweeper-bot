@@ -1,18 +1,39 @@
-# telegram
+# Bot settings
+## Token (required). Get it from @BotFather
 BOT_TOKEN=1234567890:abcdefghijklmnopqrstuvwxyz
-# database
-DB_HOST=db
-DB_PORT=5432
-DB_NAME=yourdb
-DB_USER=user
-DB_PASS=s3cr3t
-# redis (FSM)
-REDIS_HOST=redis
-# docker image
-IMAGE=latest
-# webhooks
-WEBHOOK_ENABLED=1
-WEBHOOK_DOMAIN=bombsweeper.example.com
-WEBHOOK_PATH=/extra/path/from/root
-APP_HOST=0.0.0.0
-APP_PORT=9000
+## FSM Storage for game data. Values allowed: memory, redis
+BOT_FSM_STORAGE=redis
+
+# Storages
+## Redis connection string. Required if BOT_FSM_STORAGE=redis
+REDIS_DSN=redis://localhost:6379/0
+## PostgreSQL connection string. Always required
+POSTGRES_DSN=postgresql+asyncpg://USER:PASSWORD@HOST:PORT/DBNAME
+
+# Database settings
+## Password for superuser in PostgreSQL.
+## If upgrading from existing versions, this is PASSWORD from POSTGRES_DSN above
+## If creating a new instance, set it to some strong random password
+SUPERUSER_PASSWORD=1234567890
+
+## Name of superuser in PostgreSQL
+## If upgrading from existing versions, this is USER from POSTGRES_DSN above
+## If creating a new instance, either skip it or set it to both here and docker-compose.yml
+## SUPERUSER_USER=admin
+
+# Webhooks (optional)
+# You can skip this section if you want to use polling
+## Domain part of your webhook.
+# WEBHOOK_DOMAIN=http://localhost:9000
+## Actual path for your webhook on your domain
+# WEBHOOK_PATH=/bombsweeper/s89ytjr5dh
+
+# App settings (optional)
+# You can skip this section if you want to use polling
+# or if default settings are sufficient.
+# APP_HOST=0.0.0.0
+# APP_PORT=9000
+
+# Using local Bot API server (Optional)
+# You can skip this section if you want to use primary Bot API server
+# CUSTOM_BOT_API=http://localhost:8081

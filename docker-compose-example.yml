@@ -1,33 +1,32 @@
 version: '3.8'
 services:
+    # You can remove redis section and all its mentions if using "memory" storage
     redis:
-        image: redis:6.0-alpine
+        image: redis:6-alpine
         restart: "unless-stopped"
-        environment:
-            - REDIS_HOST
         volumes:
             # don't forget to put redis.conf to redis_config directory!
-            - "/path/to/bombsweeper/redis_config:/usr/local/etc/redis"
-            - "/path/to/bombsweeper/redis_data:/data"
+            - "/opt/bombsweeper/redis/config:/usr/local/etc/redis"
+            - "/opt/bombsweeper/redis/data:/data"
         command: "redis-server /usr/local/etc/redis/redis.conf"
     db:
         image: postgres:13-alpine
         restart: "unless-stopped"
         environment:
-            POSTGRES_USER: ${DB_USER}
-            POSTGRES_PASSWORD: ${DB_PASS}
-            POSTGRES_DB: ${DB_NAME}
+            POSTGRES_PASSWORD: ${SUPERUSER_PASSWORD}
         volumes:
-            - "/path/to/bombsweeper/postgres_data:/var/lib/postgresql/data"
+            - "/opt/bombsweeper/pg/data:/var/lib/postgresql/data"
+            - "/opt/bombsweeper/pg/init:/docker-entrypoint-initdb.d"
     db_migration:
-        image: "groosha/telegram-bombsweeper-bot:${IMAGE}"
+        # You can override this tag using docker-compose.override.yml
+        image: "groosha/telegram-bombsweeper-bot:latest"
         restart: "on-failure"
         depends_on:
-            -   db
+            - db
         env_file: .env
         command: sh -c "python -m alembic upgrade head"
     bot:
-        image: "groosha/telegram-bombsweeper-bot:${IMAGE}"
+        image: "groosha/telegram-bombsweeper-bot:latest"
         stop_signal: SIGINT
         restart: "unless-stopped"
         env_file: .env
