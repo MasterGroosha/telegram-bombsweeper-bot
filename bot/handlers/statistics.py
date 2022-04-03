@@ -1,10 +1,13 @@
-from aiogram import Dispatcher, types
-from sqlalchemy import select
+from aiogram import Router, types
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.db.models import GameHistoryEntry
+from bot.db.requests import get_games_by_id
+
+router = Router()
 
 
+@router.message(commands=["stats"])
 async def show_stats(message: types.Message, session: AsyncSession):
     """
     Get player personal statistics
@@ -12,23 +15,20 @@ async def show_stats(message: types.Message, session: AsyncSession):
     :param message: Telegram message with /stats command
     :param session: SQLAlchemy DB session
     """
-    game_data_request = await session.execute(
-        select(GameHistoryEntry).where(GameHistoryEntry.telegram_id == message.from_user.id)
-    )
-    game_data = game_data_request.scalars().all()
-    if len(game_data) == 0:
+    games = await get_games_by_id(session, message.from_user.id)
+    if len(games) == 0:
         await message.answer("You don't have any stats yet! Press /start and play a game of Bombsweeper")
         return
     user_data = {}
 
     # Gather wins and loses, grouping them by field size locally
-    item: GameHistoryEntry
-    for item in game_data:
-        user_data.setdefault(item.field_size, {"wins": 0, "loses": 0})
-        if item.victory is True:
-            user_data[item.field_size]["wins"] += 1
+    game: GameHistoryEntry
+    for game in games:
+        user_data.setdefault(game.field_size, {"wins": 0, "loses": 0})
+        if game.victory is True:
+            user_data[game.field_size]["wins"] += 1
         else:
-            user_data[item.field_size]["loses"] += 1
+            user_data[game.field_size]["loses"] += 1
 
     # Calculate total games for each mode along with winrate.
     result_text_array = []
@@ -53,7 +53,3 @@ async def show_stats(message: types.Message, session: AsyncSession):
     # Add a header to the beginning of result message
     result_text_array.insert(0, f"📊 <u>Your personal stats</u>:\nTotal games played: <b>{total_games}</b>")
     await message.answer("\n\n".join(result_text_array))
-
-
-def register_statistics_handlers(dp: Dispatcher):
-    dp.register_message_handler(show_stats, commands="stats")

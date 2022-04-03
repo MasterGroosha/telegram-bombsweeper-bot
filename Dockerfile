@@ -1,5 +1,5 @@
 # Separate build image
-FROM python:3.9-slim-buster as compile-image
+FROM python:3.9-slim-bullseye as compile-image
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 COPY requirements.txt .
@@ -11,7 +11,7 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 
 # Final image
-FROM python:3.9-slim-buster
+FROM python:3.9-slim-bullseye
 COPY --from=compile-image /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 WORKDIR /app
