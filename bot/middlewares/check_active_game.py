@@ -1,7 +1,7 @@
 from typing import Callable, Awaitable, Dict, Any
 
 from aiogram import BaseMiddleware, html
-from aiogram.dispatcher.event.handler import HandlerObject
+from aiogram.dispatcher.flags.getter import get_flag
 from aiogram.types import CallbackQuery
 
 from bot.cbdata import ClickCallbackFactory, SwitchFlagCallbackFactory, SwitchModeCallbackFactory
@@ -17,8 +17,7 @@ class CheckActiveGameMiddleware(BaseMiddleware):
         """
         Check whether game is active. This middleware is intended for CallbackQuery only!
         """
-        real_handler: HandlerObject = data.get("handler")
-        need_check_handler = real_handler.flags.get("need_check_game")
+        need_check_handler = get_flag(data, "need_check_game")
         if not need_check_handler:
             return await handler(event, data)
         state = data["state"]
