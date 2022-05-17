@@ -51,6 +51,9 @@ from bot.minesweeper.game import gather_open_cells
         ]
     ]
 )
-def test_gather_open_cells(field: List[List[int]], current: Tuple[int, int],
-                           expected: List[Tuple[int, int]]):
-    assert sorted(gather_open_cells(field, current, reset_contextvar=True)) == sorted(expected)
+def test_gather_open_cells(
+        field: List[List[int]],
+        current: Tuple[int, int],
+        expected: List[Tuple[int, int]]
+):
+    assert sorted(gather_open_cells(field, current)) == sorted(expected)

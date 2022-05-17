@@ -1,14 +1,9 @@
-from contextvars import ContextVar
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Tuple, Union, Set
 
 from texttable import Texttable
 
 from bot.minesweeper.generators import generate_custom, generate_square_field
 from bot.minesweeper.states import CellMask, ClickMode
-
-
-# To avoid recursion, we use context vars to store already checked cells
-checked_cells = ContextVar("checked_cells")
 
 
 def get_fake_newgame_data(size: int, bombs: int) -> Dict:
@@ -81,8 +76,65 @@ def all_free_cells_are_open(cells: List[List[Dict]]) -> bool:
     return hidden_cells_count == 0
 
 
-def gather_open_cells(cells: List[List[Union[Dict, int]]], current: Tuple[int, int],
-                      reset_contextvar: bool = False) -> List[Tuple[int, int]]:
+class CellsChecker:
+    """
+    This is a special class to check minefield cells
+    """
+
+    ROW = 0     # first item in tuple is row
+    COL = 1  # second item in tuple is column
+
+    def __init__(self, cells: List[List[Union[Dict, int]]]):
+        self.cells = cells
+        self.size = len(cells)
+        self.checked_cells: Set[Tuple[int, int]] = set()
+
+    def get_cells_to_open(self, cell: Tuple[int, int]) -> List[Tuple[int, int]]:
+        """
+        When user clicks on empty (value 0) field, we need to open all adjacent cells
+        until there is a non-zero cell in every direction.
+        We use depth search to find all cells to open
+
+        This function is called recursively until every non-zero adjacent cell is found
+
+        :param cell: a tuple containing row and column coordinates of cell to check
+        :return: list of cells which must be open
+        """
+        result = [cell]
+
+        # current_cell_value is always a dict except when running tests
+        current_cell_value = self.cells[cell[self.ROW]][cell[self.COL]]
+        if isinstance(current_cell_value, Dict):
+            current_cell_value = current_cell_value["value"]
+
+        if current_cell_value != 0:
+            return result
+
+        self.checked_cells.add(cell)
+
+        adjacent_cells = (
+            (cell[self.ROW] - 1, cell[self.COL]),      # up
+            (cell[self.ROW] + 1, cell[self.COL]),      # down
+            (cell[self.ROW], cell[self.COL] - 1),      # left
+            (cell[self.ROW], cell[self.COL] + 1),      # right
+            (cell[self.ROW] - 1, cell[self.COL] - 1),  # up left
+            (cell[self.ROW] - 1, cell[self.COL] + 1),  # up right
+            (cell[self.ROW] + 1, cell[self.COL] - 1),  # down left
+            (cell[self.ROW] + 1, cell[self.COL] + 1),  # down right
+        )
+
+        for row_index, col_index in adjacent_cells:
+            if 0 <= row_index < self.size \
+                    and 0 <= col_index < self.size \
+                    and (row_index, col_index) not in self.checked_cells:
+                result += self.get_cells_to_open((row_index, col_index))
+        return list(set(result))
+
+
+def gather_open_cells(
+        cells: List[List[Union[Dict, int]]],
+        current: Tuple[int, int],
+) -> List[Tuple[int, int]]:
     """
     If current cell stores value 0, find the whole block of numbers.
     A search goes in all directions until every direction has non-zero values
@@ -93,42 +145,9 @@ def gather_open_cells(cells: List[List[Union[Dict, int]]], current: Tuple[int, i
     :param current: (row, column) of the current cell
     :return: after all recursion calls, returns unique list of cells coordinates in block
     """
-    _row = 0
-    _col = 1
-    result = [(current[_row], current[_col])]
-    size = len(cells)
 
-    checked = checked_cells.get(None)
-    if checked is None:
-        checked = set()
-
-    current_cell_value = cells[current[_row]][current[_col]]
-    if isinstance(current_cell_value, Dict):
-        current_cell_value = current_cell_value["value"]
-    if current_cell_value != 0:
-        return result
-
-    checked.add((current[_row], current[_col]))
-    checked_cells.set(checked)
-
-    adjacent_cells = (
-        (current[_row] - 1, current[_col]),      # up
-        (current[_row] + 1, current[_col]),      # down
-        (current[_row], current[_col] - 1),      # left
-        (current[_row], current[_col] + 1),      # right
-        (current[_row] - 1, current[_col] - 1),  # up left
-        (current[_row] - 1, current[_col] + 1),  # up right
-        (current[_row] + 1, current[_col] - 1),  # down left
-        (current[_row] + 1, current[_col] + 1),  # down right
-    )
-    for row, col in adjacent_cells:
-        # Check overflow and whether we already checked this cell
-        if 0 <= row < size and 0 <= col < size and (row, col) not in checked:
-            result += gather_open_cells(cells, (row, col), reset_contextvar=False)
-
-    if reset_contextvar:
-        checked_cells.set(None)  # clear context. Only needed for tests though
-    return list(set(result))
+    checker = CellsChecker(cells)
+    return checker.get_cells_to_open(current)
 
 
 def make_text_table(cells: List[List[Dict]]) -> str:
