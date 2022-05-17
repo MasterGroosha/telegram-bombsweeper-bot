@@ -16,11 +16,9 @@ async def show_newgame_cb(call: CallbackQuery):
     await call.message.delete_reply_markup()
     await call.answer()
 
-from aiogram.dispatcher.fsm.context import FSMContext
 
 @router.message(commands=["start"])
-async def show_newgame_msg(message: Message, state: FSMContext):
-    await state.update_data(key="somevalue")
+async def show_newgame_msg(message: Message):
     await message.answer(
         "Press a button below to start a new game (previous one will be dismissed)\n"
         "Note: 6×6 and 7×7 fields look best on bigger screens or Desktop apps.\n\n"
