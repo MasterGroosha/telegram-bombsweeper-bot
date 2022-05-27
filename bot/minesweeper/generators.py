@@ -1,6 +1,6 @@
-from contextlib import suppress
-from typing import List, Tuple
+from itertools import product
 from random import randint
+from typing import List, Tuple
 
 
 def generate_square_field(k: int) -> List[List]:
@@ -13,56 +13,15 @@ def generate_square_field(k: int) -> List[List]:
 def __find_neighbours(x: int, y: int, size: int) -> List[Tuple]:
     """
     Finds neighbours for a cell. Those which fall out of the field are skipped
-
     :param x: current cell's X coord
     :param y: current cell's Y coord
     :param size: field single dimension size (because field is square)
     :return: list of (x, y) pairs of valid neighbours
     """
-    curr_x = x
-    curr_y = y
-    result = []
-    # All possible placements.
-    # First letter means vertical (U - Up, C - Center, D - Down)
-    # Second letter means horizontal (L - Left, C - Center, R - Right)
-    options = {"UL", "UC", "UR", "CL", "CR", "DL", "DC", "DR"}
-
-    # If we are at left side (0, x)
-    if curr_x - 1 < 0:
-        for i in ("UL", "CL", "DL"):
-            options.remove(i)
-    # if we are at right side (%size%, x)
-    if curr_x + 1 == size:
-        for i in ("UR", "CR", "DR"):
-            options.remove(i)
-    # if we are on top (x, 0)
-    if curr_y - 1 < 0:
-        for i in ("UL", "UC", "UR"):
-            with suppress(KeyError):
-                options.remove(i)
-    if curr_y + 1 == size:
-        for i in ("DL", "DC", "DR"):
-            with suppress(KeyError):
-                options.remove(i)
-
-    for option in options:
-        if option == "UL":
-            result.append((curr_x - 1, curr_y - 1))
-        elif option == "UC":
-            result.append((curr_x, curr_y - 1))
-        elif option == "UR":
-            result.append((curr_x + 1, curr_y - 1))
-        elif option == "CL":
-            result.append((curr_x - 1, curr_y))
-        elif option == "CR":
-            result.append((curr_x + 1, curr_y))
-        elif option == "DL":
-            result.append((curr_x - 1, curr_y + 1))
-        elif option == "DC":
-            result.append((curr_x, curr_y + 1))
-        elif option == "DR":
-            result.append((curr_x + 1, curr_y + 1))
-    return result
+    return [
+        (x + dx, y + dy) for dx, dy in product([-1, 0, 1], repeat=2)
+        if (dx or dy) and 0 <= x + dx < size and 0 <= y + dy < size
+    ]
 
 
 def generate_custom(size: int, bombs: int, predefined: Tuple[int, int]) -> List[List]:
