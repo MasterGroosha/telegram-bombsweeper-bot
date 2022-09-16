@@ -51,7 +51,7 @@ def all_flags_match_bombs(cells: List[List[Dict]]) -> bool:
     Checks whether all flags are placed correctly
     and there are no flags over regular cells (not bombs)
 
-    :param cells: array of array of cells dicts
+    :param cells: list of list of cells dicts
     :return: True if all flags are placed correctly
     """
     for row in cells:
