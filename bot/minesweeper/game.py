@@ -150,6 +150,25 @@ def gather_open_cells(
     return checker.get_cells_to_open(current)
 
 
+def update_open_cells(cells: List[List[Dict]], x: int, y: int):
+    """
+    Update game field. At this moment we know, that player clicked
+    a non-bomb cell. If cell value is not 0, open this cell only.
+    If cell value is zero, open this cell and all adjacent cells recursively.
+
+    :param cells: list of list of cells dicts
+    :param x: row coordinate of tap/click
+    :param y: column coordinate of tap/click
+    :return: updates object in-place, returns nothing
+    """
+    if cells[x][y]["value"] == 0:
+        for item in gather_open_cells(cells, (x, y)):
+            cells[item[0]][item[1]]["mask"] = CellMask.OPEN
+    # ... or just the current one
+    else:
+        cells[x][y]["mask"] = CellMask.OPEN
+
+
 def make_text_table(cells: List[List[Dict]]) -> str:
     """
     Makes a text representation of game field using texttable library
