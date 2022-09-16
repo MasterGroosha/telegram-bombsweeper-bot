@@ -68,44 +68,45 @@ async def callback_open_square(call: types.CallbackQuery, state: FSMContext,
                 reply_markup=make_replay_keyboard(field_size, bombs)
             )
         await log_game(session, fsm_data, call.from_user.id, "lose")
-    # This cell contained a number
-    else:
-        # If cell is empty (0), open all adjacent squares
-        if cells[x][y]["value"] == 0:
-            for item in gather_open_cells(cells, (x, y)):
-                cells[item[0]][item[1]]["mask"] = CellMask.OPEN
-        # ... or just the current one
-        else:
-            cells[x][y]["mask"] = CellMask.OPEN
+        return
 
-        if all_free_cells_are_open(cells):
-            with suppress(TelegramBadRequest):
-                await call.message.edit_text(
-                    call.message.html_text + f"\n\n{make_text_table(cells)}\n\n<b>You won!</b> 🎉",
-                    reply_markup=make_replay_keyboard(field_size, bombs)
-                )
-            await log_game(session, fsm_data, call.from_user.id, "win")
-            await call.answer()
-            return
-        # There are more flags than there should be
-        elif untouched_cells_count(cells) == 0 and not all_flags_match_bombs(cells):
-            await state.update_data(game_data=game_data)
-            with suppress(TelegramBadRequest):
-                await call.message.edit_reply_markup(
-                    make_keyboard_from_minefield(cells, game_id, game_data["current_mode"])
-                )
-            await call.answer(
-                show_alert=True,
-                text="Looks like you've placed more flags than there are bombs on field. Please check them again."
+    # This cell contained a number
+    # If cell is empty (0), open all adjacent squares
+    if cells[x][y]["value"] == 0:
+        for item in gather_open_cells(cells, (x, y)):
+            cells[item[0]][item[1]]["mask"] = CellMask.OPEN
+    # ... or just the current one
+    else:
+        cells[x][y]["mask"] = CellMask.OPEN
+
+    if all_free_cells_are_open(cells):
+        with suppress(TelegramBadRequest):
+            await call.message.edit_text(
+                call.message.html_text + f"\n\n{make_text_table(cells)}\n\n<b>You won!</b> 🎉",
+                reply_markup=make_replay_keyboard(field_size, bombs)
             )
-            return
-        # If this is not the last cell to open
-        else:
-            await state.update_data(game_data=game_data)
-            with suppress(TelegramBadRequest):
-                await call.message.edit_reply_markup(
-                    make_keyboard_from_minefield(cells, game_id, game_data["current_mode"])
-                )
+        await log_game(session, fsm_data, call.from_user.id, "win")
+        await call.answer()
+        return
+    # There are more flags than there should be
+    elif untouched_cells_count(cells) == 0 and not all_flags_match_bombs(cells):
+        await state.update_data(game_data=game_data)
+        with suppress(TelegramBadRequest):
+            await call.message.edit_reply_markup(
+                make_keyboard_from_minefield(cells, game_id, game_data["current_mode"])
+            )
+        await call.answer(
+            show_alert=True,
+            text="Looks like you've placed more flags than there are bombs on field. Please check them again."
+        )
+        return
+    # If this is not the last cell to open
+    else:
+        await state.update_data(game_data=game_data)
+        with suppress(TelegramBadRequest):
+            await call.message.edit_reply_markup(
+                make_keyboard_from_minefield(cells, game_id, game_data["current_mode"])
+            )
     await call.answer(cache_time=2)
 
 
