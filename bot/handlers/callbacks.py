@@ -48,8 +48,8 @@ async def callback_open_square(call: types.CallbackQuery, state: FSMContext,
     field_size = int(game_data.get("size"))
     bombs = int(game_data.get("bombs"))
 
-    x = callback_data.x
-    y = callback_data.y
+    x: int = callback_data.x
+    y: int = callback_data.y
 
     # If this is the first click, it's time to generate the real game field
     if game_data["initial"] is True:
