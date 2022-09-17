@@ -1,5 +1,5 @@
 from contextlib import suppress
-from typing import Optional
+from typing import Dict, List
 from uuid import uuid4
 
 from aiogram import types, Router, F
@@ -38,6 +38,21 @@ async def callback_newgame(call: types.CallbackQuery, state: FSMContext, callbac
     await call.answer()
 
 
+async def update_player_keyboard(
+        callback: types.CallbackQuery,
+        cells: List[List[Dict]],
+        game_id: str,
+        click_mode: int
+):
+    """
+    Updates player's keyboard
+    """
+    with suppress(TelegramBadRequest):
+        await callback.message.edit_reply_markup(
+            make_keyboard_from_minefield(cells, game_id, click_mode)
+        )
+
+
 @router.callback_query(ClickCallbackFactory.filter(), flags={"need_check_game": True})
 async def callback_open_square(call: types.CallbackQuery, state: FSMContext,
                                callback_data: ClickCallbackFactory, session: AsyncSession):
@@ -59,25 +74,6 @@ async def callback_open_square(call: types.CallbackQuery, state: FSMContext,
             )
         await log_game(session, fsm_data, call.from_user.id, is_win)
         await call.answer()
-
-    async def update_player_keyboard():
-        """
-        Updates player's FSM data
-        """
-        await state.update_data(game_data=game_data)
-        with suppress(TelegramBadRequest):
-            await call.message.edit_reply_markup(
-                make_keyboard_from_minefield(cells, game_id, game_data["current_mode"])
-            )
-
-    async def answer_callback(is_alert: bool = False, warning_text: Optional[str] = None):
-        """
-        Answers the callback
-
-        :param is_alert: whether to show popup alert to user
-        :param warning_text: what text to show if is_alert is True
-        """
-        await call.answer(show_alert=is_alert, text=warning_text)
 
     fsm_data = await state.get_data()
     game_id = fsm_data.get("game_id")
@@ -102,14 +98,16 @@ async def callback_open_square(call: types.CallbackQuery, state: FSMContext,
 
     game_state = analyze_game_field(cells)
     if game_state == GameState.HAS_HIDDEN_NUMBERS:
-        await update_player_keyboard()
-        await answer_callback()
+        await state.update_data(game_data=game_data)
+        await update_player_keyboard(call, cells, game_id, game_data["current_mode"])
+        await call.answer()
     elif game_state == GameState.MORE_FLAGS_THAN_BOMBS:
-        await update_player_keyboard()
-        await answer_callback(
-            is_alert=True,
-            warning_text="Looks like you've placed more flags than there are bombs on the field. "
-                         "Please check them again."
+        await state.update_data(game_data=game_data)
+        await update_player_keyboard(call, cells, game_id, game_data["current_mode"])
+        await call.answer(
+            show_alert=True,
+            text="Looks like you've placed more flags than there are bombs on the field. "
+                 "Please check them again."
         )
     else:  # == GameState.Victory
         await finish_game(is_win=True)
@@ -132,67 +130,58 @@ async def switch_click_mode(call: types.CallbackQuery, state: FSMContext, callba
     game_data["current_mode"] = callback_data.new_mode
     await state.update_data(game_data=game_data)
 
-    with suppress(TelegramBadRequest):
-        await call.message.edit_reply_markup(
-            make_keyboard_from_minefield(cells, game_id, game_data["current_mode"])
-        )
+    await update_player_keyboard(call, cells, game_id, game_data["current_mode"])
     await call.answer()
 
 
-@router.callback_query(SwitchFlagCallbackFactory.filter(), flags={"need_check_game": True})
-async def add_or_remove_flag(call: types.CallbackQuery, state: FSMContext,
-                             callback_data: SwitchFlagCallbackFactory, session: AsyncSession):
-    """
-    Called when player puts a flag on HIDDEN cell or clicks a flag to remove it
-    """
+@router.callback_query(
+    SwitchFlagCallbackFactory.filter(F.action == "remove"),
+    flags={"need_check_game": True}
+)
+async def cb_remove_flag(
+        call: types.CallbackQuery,
+        state: FSMContext,
+        callback_data: SwitchFlagCallbackFactory
+):
     fsm_data = await state.get_data()
     game_id = fsm_data.get("game_id")
-    game_data = fsm_data.get("game_data", {})
+    game_data = fsm_data.get("game_data")
     cells = game_data.get("cells")
-    field_size = int(game_data.get("size"))
-    bombs = int(game_data.get("bombs"))
 
-    action = callback_data.action
-    flag_x = callback_data.x
-    flag_y = callback_data.y
+    cells[callback_data.x][callback_data.y].update(mask=CellMask.HIDDEN)
+    await state.update_data(game_data=game_data)
+    await update_player_keyboard(call, cells, game_id, game_data["current_mode"])
+    await call.answer()
 
-    if action == "remove":
-        cells[flag_x][flag_y].update(mask=CellMask.HIDDEN)
+
+@router.callback_query(
+    SwitchFlagCallbackFactory.filter(F.action == "add"),
+    flags={"need_check_game": True}
+)
+async def cb_add_flag(
+        call: types.CallbackQuery,
+        state: FSMContext,
+        callback_data: SwitchFlagCallbackFactory
+):
+    fsm_data = await state.get_data()
+    game_id = fsm_data.get("game_id")
+    game_data = fsm_data.get("game_data")
+    cells = game_data.get("cells")
+
+    cells[callback_data.x][callback_data.y].update(mask=CellMask.FLAG)
+    game_state = analyze_game_field(cells)
+    if game_state == GameState.HAS_HIDDEN_NUMBERS:
         await state.update_data(game_data=game_data)
-        with suppress(TelegramBadRequest):
-            await call.message.edit_reply_markup(
-                make_keyboard_from_minefield(cells, game_id, game_data["current_mode"])
-            )
-    elif action == "add":
-        cells[flag_x][flag_y].update(mask=CellMask.FLAG)
-        # See callback_open_square() for explanation
-        if untouched_cells_count(cells) == 0:
-            if all_flags_match_bombs(cells):
-                with suppress(TelegramBadRequest):
-                    await call.message.edit_text(
-                        call.message.html_text + f"\n\n{make_text_table(cells)}\n\n<b>You won!</b> 🎉",
-                        reply_markup=make_replay_keyboard(field_size, bombs)
-                    )
-                await log_game(session, fsm_data, call.from_user.id, "win")
-            else:
-                await state.update_data(game_data=game_data)
-                with suppress(TelegramBadRequest):
-                    await call.message.edit_reply_markup(
-                        make_keyboard_from_minefield(cells, game_id, game_data["current_mode"])
-                    )
-                await call.answer(
-                    show_alert=True,
-                    text="Looks like you've placed more flags than there are bombs on field. "
-                         "Please check them again."
-                )
-                return
-        else:
-            await state.update_data(game_data=game_data)
-            with suppress(TelegramBadRequest):
-                await call.message.edit_reply_markup(
-                    make_keyboard_from_minefield(cells, game_id, game_data["current_mode"])
-                )
-    await call.answer(cache_time=1)
+        await update_player_keyboard(call, cells, game_id, game_data["current_mode"])
+        await call.answer()
+    elif game_state == GameState.MORE_FLAGS_THAN_BOMBS:
+        await state.update_data(game_data=game_data)
+        await update_player_keyboard(call, cells, game_id, game_data["current_mode"])
+        await call.answer(
+            show_alert=True,
+            text="Looks like you've placed more flags than there are bombs on the field. "
+                 "Please check them again."
+        )
 
 
 @router.callback_query(IgnoreCallbackFactory.filter())
