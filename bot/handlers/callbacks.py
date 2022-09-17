@@ -42,6 +42,18 @@ async def callback_open_square(call: types.CallbackQuery, state: FSMContext,
     """
     Called when player clicks a HIDDEN cell (without any flags or numbers)
     """
+
+    async def finish_game(is_win: bool):
+        added_text = "<b>You won!</b> 🎉" if is_win else "<b>You lost</b> 😞"
+
+        with suppress(TelegramBadRequest):
+            await call.message.edit_text(
+                call.message.html_text + f"\n\n{make_text_table(cells)}\n\n{added_text}",
+                reply_markup=make_replay_keyboard(field_size, bombs)
+            )
+        await log_game(session, fsm_data, call.from_user.id, "win" if is_win else "lose")
+        await call.answer()
+
     fsm_data = await state.get_data()
     game_id = fsm_data.get("game_id")
     game_data = fsm_data.get("game_data", {})
@@ -60,24 +72,13 @@ async def callback_open_square(call: types.CallbackQuery, state: FSMContext,
 
     # This cell contained a bomb
     if cells[x][y]["value"] == "*":
-        cells[x][y]["mask"] = CellMask.BOMB
-        with suppress(TelegramBadRequest):
-            await call.message.edit_text(
-                call.message.html_text + f"\n\n{make_text_table(cells)}\n\n<b>You lost</b> 😞",
-                reply_markup=make_replay_keyboard(field_size, bombs)
-            )
-        await log_game(session, fsm_data, call.from_user.id, "lose")
+        await finish_game(is_win=False)
         return
 
     if all_free_cells_are_open(cells):
-        with suppress(TelegramBadRequest):
-            await call.message.edit_text(
-                call.message.html_text + f"\n\n{make_text_table(cells)}\n\n<b>You won!</b> 🎉",
-                reply_markup=make_replay_keyboard(field_size, bombs)
-            )
-        await log_game(session, fsm_data, call.from_user.id, "win")
-        await call.answer()
+        await finish_game(is_win=True)
         return
+
     # There are more flags than there should be
     elif untouched_cells_count(cells) == 0 and not all_flags_match_bombs(cells):
         await state.update_data(game_data=game_data)
