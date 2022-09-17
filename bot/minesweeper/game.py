@@ -99,21 +99,27 @@ def all_free_cells_are_open(cells: List[List[Dict]]) -> bool:
 
 
 def analyze_game_field(game_field: List[List[Dict]]) -> GameState:
-    has_hidden = False
+    has_hidden_numbers = False
+    has_hidden_cells = False
     flag_mismatch = False
 
     for cell in list(chain(*game_field)):
-        # If there are still hidden cells, just continue the game
+        # If there are still hidden non-bomb cells, just continue the game
         if cell["mask"] == CellMask.HIDDEN:
-            has_hidden = True
-            break
+            if cell["value"] != "*":
+                has_hidden_numbers = has_hidden_cells = True
+                break
+            has_hidden_cells = True
         # If flag stands on non-bomb cell,
         # then player needs to remove it and open a cell
         if cell["mask"] == CellMask.FLAG and cell["value"] != "*":
             flag_mismatch = True
 
-    if has_hidden:
-        return GameState.HAS_HIDDEN_CELLS
+    if has_hidden_cells:
+        if has_hidden_numbers:
+            return GameState.HAS_HIDDEN_NUMBERS
+        return GameState.VICTORY
+    # No hidden cells at this moment
     if flag_mismatch:
         return GameState.MORE_FLAGS_THAN_BOMBS
     return GameState.VICTORY

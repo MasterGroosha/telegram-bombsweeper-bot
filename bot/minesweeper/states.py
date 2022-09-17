@@ -11,6 +11,6 @@ class CellMask:
 
 
 class GameState:
-    HAS_HIDDEN_CELLS = 0
+    HAS_HIDDEN_NUMBERS = 0
     MORE_FLAGS_THAN_BOMBS = 1
     VICTORY = 2

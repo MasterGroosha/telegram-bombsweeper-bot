@@ -101,7 +101,7 @@ async def callback_open_square(call: types.CallbackQuery, state: FSMContext,
         return
 
     game_state = analyze_game_field(cells)
-    if game_state == GameState.HAS_HIDDEN_CELLS:
+    if game_state == GameState.HAS_HIDDEN_NUMBERS:
         await update_player_keyboard()
         await answer_callback()
     elif game_state == GameState.MORE_FLAGS_THAN_BOMBS:
