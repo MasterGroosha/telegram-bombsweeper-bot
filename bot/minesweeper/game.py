@@ -31,6 +31,27 @@ def get_real_game_data(size: int, bombs: int, predefined: Tuple[int, int]) -> Li
     return field
 
 
+def ensure_real_game_field(game_data: Dict, first_click_coords: Tuple[int, int]):
+    """
+    Ensures that we're operating on a real game field, not an empty one.
+    This is because player must not blow themselves up on first click,
+    so initial game field is completely empty
+
+    :param game_data: player's current game data
+    :param first_click_coords: (x, y) of clicked button
+    :return: modifies {game_data} in-place, returns nothing
+    """
+    # If this is the first click, it's time to generate the real game field
+    if game_data["initial"] is True:
+        cells = get_real_game_data(
+            size=game_data["size"],
+            bombs=game_data["bombs"],
+            predefined=(first_click_coords[0], first_click_coords[1])
+        )
+        game_data["cells"] = cells
+        game_data["initial"] = False
+
+
 def untouched_cells_count(cells: List[List[Dict]]) -> int:
     """
     Counts the number of "untouched" cells: those which status is HIDDEN

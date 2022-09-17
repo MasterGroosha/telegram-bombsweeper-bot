@@ -51,13 +51,9 @@ async def callback_open_square(call: types.CallbackQuery, state: FSMContext,
     x: int = callback_data.x
     y: int = callback_data.y
 
-    # If this is the first click, it's time to generate the real game field
-    if game_data["initial"] is True:
-        cells = get_real_game_data(game_data["size"], game_data["bombs"], (x, y))
-        game_data["cells"] = cells
-        game_data["initial"] = False
-    else:
-        cells = game_data.get("cells")
+    # Get the real game field in case of the first click
+    ensure_real_game_field(game_data, (x, y))
+    cells = game_data.get("cells")
 
     # Update game field (in memory, not for user yet)
     update_game_field(cells, x, y)
