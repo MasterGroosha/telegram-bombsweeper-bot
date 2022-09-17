@@ -1,9 +1,10 @@
+from itertools import chain
 from typing import Dict, List, Tuple, Union, Set
 
 from texttable import Texttable
 
 from bot.minesweeper.generators import generate_custom, generate_square_field
-from bot.minesweeper.states import CellMask, ClickMode
+from bot.minesweeper.states import CellMask, ClickMode, GameState
 
 
 def get_fake_newgame_data(size: int, bombs: int) -> Dict:
@@ -31,49 +32,49 @@ def get_real_game_data(size: int, bombs: int, predefined: Tuple[int, int]) -> Li
     return field
 
 
-def untouched_cells_count(cells: List[List[Dict]]) -> int:
+def ensure_real_game_field(game_data: Dict, first_click_coords: Tuple[int, int]):
     """
-    Counts the number of "untouched" cells: those which status is HIDDEN
+    Ensures that we're operating on a real game field, not an empty one.
+    This is because player must not blow themselves up on first click,
+    so initial game field is completely empty
 
-    :param cells: array of array of cells dicts
-    :return: number of cells with HIDDEN status
+    :param game_data: player's current game data
+    :param first_click_coords: (x, y) of clicked button
+    :return: modifies {game_data} in-place, returns nothing
     """
-    counter = 0
-    for row in cells:
-        for cell in row:
-            if cell["mask"] == CellMask.HIDDEN:
-                counter += 1
-    return counter
+    # If this is the first click, it's time to generate the real game field
+    if game_data["initial"] is True:
+        cells = get_real_game_data(
+            size=game_data["size"],
+            bombs=game_data["bombs"],
+            predefined=(first_click_coords[0], first_click_coords[1])
+        )
+        game_data["cells"] = cells
+        game_data["initial"] = False
 
 
-def all_flags_match_bombs(cells: List[List[Dict]]) -> bool:
-    """
-    Checks whether all flags are placed correctly
-    and there are no flags over regular cells (not bombs)
+def analyze_game_field(game_field: List[List[Dict]]) -> GameState:
+    has_hidden_numbers = False
+    has_hidden_cells = False
 
-    :param cells: list of list of cells dicts
-    :return: True if all flags are placed correctly
-    """
-    for row in cells:
-        for cell in row:
-            if cell["mask"] == CellMask.FLAG and cell["value"] != "*":
-                return False
-    return True
+    for cell in list(chain(*game_field)):
+        if cell["mask"] == CellMask.HIDDEN:
+            has_hidden_cells = True
+            if cell["value"] != "*":
+                has_hidden_numbers = True
+                break
+        else:
+            if cell["value"] != "*" and cell["mask"] != CellMask.OPEN:
+                has_hidden_numbers = True
 
-
-def all_free_cells_are_open(cells: List[List[Dict]]) -> bool:
-    """
-    Checks whether all non-bombs cells are open
-
-    :param cells: array of array of cells dicts
-    :return: True if all non-bombs cells are in OPEN state
-    """
-    hidden_cells_count = 0
-    for row in cells:
-        for cell in row:
-            if cell["mask"] != CellMask.OPEN and cell["value"] != "*":
-                hidden_cells_count += 1
-    return hidden_cells_count == 0
+    if not has_hidden_cells:
+        if not has_hidden_numbers:
+            return GameState.VICTORY
+        else:
+            return GameState.MORE_FLAGS_THAN_BOMBS
+    if not has_hidden_numbers:
+        return GameState.VICTORY
+    return GameState.HAS_HIDDEN_NUMBERS
 
 
 class CellsChecker:
@@ -148,6 +149,26 @@ def gather_open_cells(
 
     checker = CellsChecker(cells)
     return checker.get_cells_to_open(current)
+
+
+def update_game_field(cells: List[List[Dict]], x: int, y: int):
+    """
+    Updates game field in memorys.
+    If cell value is zero, open this cell and all adjacent cells recursively.
+    Otherwise, reveal current cell (x, y) only
+
+    :param cells: list of list of cells dicts
+    :param x: row coordinate of tap/click
+    :param y: column coordinate of tap/click
+    :return: updates object in-place, returns nothing
+    """
+    if cells[x][y]["value"] == 0:
+        for item in gather_open_cells(cells, (x, y)):
+            cells[item[0]][item[1]]["mask"] = CellMask.OPEN
+    elif cells[x][y]["value"] == "*":
+        cells[x][y]["mask"] = CellMask.BOMB
+    else:
+        cells[x][y]["mask"] = CellMask.OPEN
 
 
 def make_text_table(cells: List[List[Dict]]) -> str:
