@@ -59,6 +59,9 @@ async def callback_open_square(call: types.CallbackQuery, state: FSMContext,
     else:
         cells = game_data.get("cells")
 
+    # Update game field (in memory, not for user yet)
+    update_game_field(cells, x, y)
+
     # This cell contained a bomb
     if cells[x][y]["value"] == "*":
         cells[x][y]["mask"] = CellMask.BOMB
@@ -69,11 +72,6 @@ async def callback_open_square(call: types.CallbackQuery, state: FSMContext,
             )
         await log_game(session, fsm_data, call.from_user.id, "lose")
         return
-
-    # This cell contained a number
-    # Update field: open one or more cells,
-    # depending on pressed cell value
-    update_open_cells(cells, x, y)
 
     if all_free_cells_are_open(cells):
         with suppress(TelegramBadRequest):
