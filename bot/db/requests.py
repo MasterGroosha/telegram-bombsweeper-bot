@@ -23,21 +23,21 @@ async def get_games_by_id(session: AsyncSession, user_id: int) -> List[GameHisto
     return game_data_request.scalars().all()
 
 
-async def log_game(session: AsyncSession, data: Dict, telegram_id: int, status: str):
+async def log_game(session: AsyncSession, data: Dict, telegram_id: int, is_win: bool):
     """
     Send end game event to database
 
     :param session: SQLAlchemy DB session
     :param data: game data dictionary (only size is taken for now)
     :param telegram_id: Player's Telegram ID
-    :param status: "win" or "lose"
+    :param is_win: True if player has won the current game
     """
     entry = GameHistoryEntry()
     entry.game_id = data["game_id"]
     entry.played_at = datetime.utcnow()
     entry.telegram_id = telegram_id
     entry.field_size = data["game_data"]["size"]
-    entry.victory = status == "win"
+    entry.victory = is_win
     session.add(entry)
     # If a user is quick enough, there might be 2 events with the same UUID.
     # There's not much we can do, so simply ignore it until we come up with a better solution
