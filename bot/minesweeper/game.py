@@ -1,9 +1,10 @@
+from itertools import chain
 from typing import Dict, List, Tuple, Union, Set
 
 from texttable import Texttable
 
 from bot.minesweeper.generators import generate_custom, generate_square_field
-from bot.minesweeper.states import CellMask, ClickMode
+from bot.minesweeper.states import CellMask, ClickMode, GameState
 
 
 def get_fake_newgame_data(size: int, bombs: int) -> Dict:
@@ -95,6 +96,27 @@ def all_free_cells_are_open(cells: List[List[Dict]]) -> bool:
             if cell["mask"] != CellMask.OPEN and cell["value"] != "*":
                 hidden_cells_count += 1
     return hidden_cells_count == 0
+
+
+def analyze_game_field(game_field: List[List[Dict]]) -> GameState:
+    has_hidden = False
+    flag_mismatch = False
+
+    for cell in list(chain(*game_field)):
+        # If there are still hidden cells, just continue the game
+        if cell["mask"] == CellMask.HIDDEN:
+            has_hidden = True
+            break
+        # If flag stands on non-bomb cell,
+        # then player needs to remove it and open a cell
+        if cell["mask"] == CellMask.FLAG and cell["value"] != "*":
+            flag_mismatch = True
+
+    if has_hidden:
+        return GameState.HAS_HIDDEN_CELLS
+    if flag_mismatch:
+        return GameState.MORE_FLAGS_THAN_BOMBS
+    return GameState.VICTORY
 
 
 class CellsChecker:
