@@ -53,51 +53,6 @@ def ensure_real_game_field(game_data: Dict, first_click_coords: Tuple[int, int])
         game_data["initial"] = False
 
 
-def untouched_cells_count(cells: List[List[Dict]]) -> int:
-    """
-    Counts the number of "untouched" cells: those which status is HIDDEN
-
-    :param cells: array of array of cells dicts
-    :return: number of cells with HIDDEN status
-    """
-    counter = 0
-    for row in cells:
-        for cell in row:
-            if cell["mask"] == CellMask.HIDDEN:
-                counter += 1
-    return counter
-
-
-def all_flags_match_bombs(cells: List[List[Dict]]) -> bool:
-    """
-    Checks whether all flags are placed correctly
-    and there are no flags over regular cells (not bombs)
-
-    :param cells: list of list of cells dicts
-    :return: True if all flags are placed correctly
-    """
-    for row in cells:
-        for cell in row:
-            if cell["mask"] == CellMask.FLAG and cell["value"] != "*":
-                return False
-    return True
-
-
-def all_free_cells_are_open(cells: List[List[Dict]]) -> bool:
-    """
-    Checks whether all non-bombs cells are open
-
-    :param cells: array of array of cells dicts
-    :return: True if all non-bombs cells are in OPEN state
-    """
-    hidden_cells_count = 0
-    for row in cells:
-        for cell in row:
-            if cell["mask"] != CellMask.OPEN and cell["value"] != "*":
-                hidden_cells_count += 1
-    return hidden_cells_count == 0
-
-
 def analyze_game_field(game_field: List[List[Dict]]) -> GameState:
     has_hidden_numbers = False
     has_hidden_cells = False
