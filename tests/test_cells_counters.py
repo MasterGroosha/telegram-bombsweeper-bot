@@ -4,10 +4,8 @@ from typing import List, Dict, Callable
 import pytest
 
 from bot.minesweeper import game
-from tests.test_data.minefields import \
-    game_won, one_open_cell, game_in_progress, \
-    all_flags_correct_has_hidden_cells, more_flags_than_should
 from bot.minesweeper.states import GameState
+from tests.test_data import minefields
 
 
 def count_items(rows, count_func: Callable) -> int:
@@ -17,11 +15,11 @@ def count_items(rows, count_func: Callable) -> int:
 @pytest.mark.parametrize(
     "field, game_state",
     [
-        [game_won, GameState.VICTORY],
-        [one_open_cell, GameState.HAS_HIDDEN_NUMBERS],
-        [game_in_progress, GameState.HAS_HIDDEN_NUMBERS],
-        [all_flags_correct_has_hidden_cells, GameState.HAS_HIDDEN_NUMBERS],
-        [more_flags_than_should, GameState.MORE_FLAGS_THAN_BOMBS],
+        [minefields.game_won, GameState.VICTORY],
+        [minefields.one_open_cell, GameState.HAS_HIDDEN_NUMBERS],
+        [minefields.game_in_progress, GameState.HAS_HIDDEN_NUMBERS],
+        [minefields.all_flags_correct_has_hidden_cells, GameState.HAS_HIDDEN_NUMBERS],
+        [minefields.more_flags_than_should, GameState.MORE_FLAGS_THAN_BOMBS],
     ]
 )
 def test_fields(
