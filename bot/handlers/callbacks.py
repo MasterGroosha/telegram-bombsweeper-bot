@@ -12,7 +12,8 @@ from bot.db.requests import log_game
 from bot.keyboards.kb_minefield import make_keyboard_from_minefield
 from bot.keyboards.kb_newgame import make_replay_keyboard
 from bot.minesweeper.game import (get_fake_newgame_data, untouched_cells_count, all_flags_match_bombs,
-                                  all_free_cells_are_open, make_text_table, get_real_game_data, update_open_cells)
+                                  all_free_cells_are_open, make_text_table, update_game_field,
+                                  ensure_real_game_field)
 from bot.minesweeper.states import ClickMode, CellMask
 
 router = Router()
