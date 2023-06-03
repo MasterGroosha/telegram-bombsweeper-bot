@@ -1,5 +1,5 @@
 from itertools import product
-from random import randint
+from random import sample
 from typing import List, Tuple
 
 
@@ -36,19 +36,11 @@ def generate_custom(size: int, bombs: int, predefined: Tuple[int, int]) -> List[
     :return: an array of arrays of cells.
     """
     field = generate_square_field(size)
-    current_count = 0
-
-    while current_count < bombs:
-        x = randint(0, size-1)
-        y = randint(0, size-1)
-
-        # Do not place a bomb on another bomb or on predefined place
-        if (x == predefined[0] and y == predefined[1]) or field[x][y] == "*":
-            continue
+    freeCells = list(product(range(size), repeat=2))
+    freeCells.remove(predefined)
+    for x, y in sample(freeCells, bombs):
         field[x][y] = "*"
-        neighbours = __find_neighbours(x, y, size)
-        for nx, ny in neighbours:
+        for nx, ny in __find_neighbours(x, y, size):
             if field[nx][ny] != "*":
                 field[nx][ny] += 1
-        current_count += 1
     return field
